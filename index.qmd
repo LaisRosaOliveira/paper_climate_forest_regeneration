@@ -1,35 +1,6 @@
 ---
-title: "Forest regeneration is still unable to fully recover Amazonian climate regulation services"
-author: Laís Rosa Oliveira
-format: 
-  html:
-    code-fold: false
-    smooth-scroll: true
-    fig-width: 16
-    fig-height: 10
-    css: styles.css
-    self-contained: true
-    df-print: paged
-    #code-tools:
-      #source: true
-      #toggle: true
-      #caption: "Source code"
-theme: "lumen"
-toc: true
-toc-location: left
-toc-depth: 10
-fontcolor: "black" # {html} Color of text.
-linkcolor: "#007FFF" # {html, pdf, beamer} Color of link text.
-reference-location: "margin"
-colortheme: "black"
-highlight: monochrome
-warning: false
-cache: true
+title: " "
 ---
-
-# -#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
-# ---------------- Observation ----------------
-# -#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
 # Packages
 
@@ -63,8 +34,7 @@ library(scales)
 
 # Leitura e pré-processamento
 
-```{r}
-#```{r,eval = FALSE, echo = TRUE}
+```{r,eval = FALSE, echo = TRUE}
 # Planilha com todos os dados
 all_PF_SF <- fread("/media/amazonia/hd2/lais/GitHub/paper_climate_forest_regeneration/plans_results/plan_final/all_vars_2001-2021_with_age.csv")
 
@@ -72,7 +42,7 @@ gc()
 
 ```
 
-```{r}
+```{r,eval = FALSE, echo = TRUE}
 
 # Contagem de dados por região ANTES da filtragem
 
@@ -92,8 +62,8 @@ gc()
 
 ```
 
-```{r}
-#```{r,eval = FALSE, echo = TRUE}
+```{r,eval = FALSE, echo = TRUE}
+
 # Colocando em uma única linha as frações de área de todos os usos de uma mesma lat, lon
 all_lulc <- dcast(
   all_PF_SF, 
@@ -115,8 +85,8 @@ gc()
 
 ## Filtragem - Pixels "não-puros"
 
-```{r}
-#```{r,eval = FALSE, echo = TRUE}
+```{r,eval = FALSE, echo = TRUE}
+
 # Condicionais
 all_lulc_fil_50 <- all_lulc %>%
   filter(
@@ -142,8 +112,8 @@ gc()
 
 ```
 
-```{r}
-#```{r,eval = FALSE, echo = TRUE}
+```{r,eval = FALSE, echo = TRUE}
+
 # Transformar colunas de fração de volta para formato original
 all_lulc_long_50 <- melt(all_lulc_fil_50, 
                          id.vars = c("Lon", "Lat", "Prec", "Evapo", "Temp", "Region", "Ano", "Idade_SF"),
@@ -171,7 +141,7 @@ gc()
 
 ```
 
-```{r}
+```{r,eval = FALSE, echo = TRUE}
 
 # Contagem de dados por região DEPOIS da filtragem
 
@@ -193,7 +163,7 @@ gc()
 
 ## Plot - Observações
 
-```{r}
+```{r,eval = FALSE, echo = TRUE}
 
 ## Obter contagens
 before <- c(
@@ -251,7 +221,7 @@ gc()
 
 ```
 
-```{r}
+```{r,eval = FALSE, echo = TRUE}
 
 rm(n_obs_cba_a, n_obs_eba_a, n_obs_sba_a)
 rm(n_obs_cba_d, n_obs_eba_d, n_obs_sba_d)
@@ -267,7 +237,7 @@ gc()
 
 ### Leitura dos dados
 
-```{r}
+```{r,eval = FALSE, echo = TRUE}
 
 # Lendo a planilha
 all_lulc_50_final <- fread("/media/amazonia/hd2/lais/GitHub/paper_climate_forest_regeneration/data_group/plan_all_lulc_final.csv")
@@ -1583,11 +1553,7 @@ gc()
 
 ```
 
-# -#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-# ---------------- Modeling ----------------
-# -#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
-
-# Packages
+# Modeling
 
 ```{r}
 
@@ -1608,11 +1574,9 @@ library(DescTools)
 
 ```
 
-# SEM LINHA DE BASE 
+## PRECIPITATION
 
-# PRECIPITATION
-
-## Model choice
+### Model choice
 
 ```{r}
 
@@ -2523,9 +2487,9 @@ ggsave("fig/supplemental_material/predicted_prec_SBA.png", bg = "white",
 
 ```
 
-# EVAPOTRANSPIRATION
+## EVAPOTRANSPIRATION
 
-## Model choice
+### Model choice
 
 ```{r}
 
@@ -3434,9 +3398,9 @@ ggsave("fig/supplemental_material/predicted_evapo_SBA.png", bg = "white",
 
 ```
 
-# TEMPERATURE
+## TEMPERATURE
 
-## Model choice
+### Model choice
 
 ```{r}
 
