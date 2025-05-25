@@ -60,8 +60,6 @@ n_obs_eba_a <- all_PF_SF %>%
 n_obs_sba_a <- all_PF_SF %>% 
   filter(Region == "SBA")
 
-gc()
-
 ```
 
 ```{r,eval = FALSE, echo = TRUE}
@@ -80,8 +78,6 @@ setnames(all_lulc, old = c("PF", "SF", "Agriculture", "Pasture"),
                   new = c("frac_area_PF", "frac_area_SF", "frac_area_Agriculture", "frac_area_Pasture"))
 
 rm(all_PF_SF)
-
-gc()
 
 ```
 
@@ -106,11 +102,9 @@ all_lulc_fil_50 <- all_lulc %>%
     (frac_area_PF > 0 & frac_area_PF <= 0.5 & 
      (frac_area_Agriculture + frac_area_Pasture + frac_area_SF <= 0.5))
   )
+
 # Exportar planilha filtrada
-
 fwrite(all_lulc_fil_50, file = "/media/amazonia/hd2/lais/GitHub/paper_climate_forest_regeneration/data_group/plan_fil_all_lulc.csv")
-
-gc()
 
 ```
 
@@ -158,8 +152,6 @@ n_obs_eba_d <- all_lulc_50_final %>%
 ## SBA
 n_obs_sba_d <- all_lulc_50_final %>% 
   filter(Region == "SBA")
-
-gc()
 
 ```
 
@@ -218,8 +210,6 @@ ggplot(df_plot, aes(x = Regiao, y = Observacoes, fill = Status)) +
 
 # Salvando a figura
 ggsave("fig/observatios_before_after.png", dpi = 600)
-
-gc()
 
 ```
 
@@ -294,7 +284,7 @@ all_lulc_prec <- all_lulc_50_fil %>%
 # Criar o novo dataframe com as categorias desejadas
 all_lulc_prec_stages <- all_lulc_prec %>%
   mutate(Tipo = case_when(Tipo == "PF" ~ "PF",
-                          Tipo == "SF" & idade == "<= 10" ~ "SF_beginning",
+                          Tipo == "SF" & idade == "<= 10" ~ "SF_early",
                           Tipo == "SF" & idade == "10-20" ~ "SF_intermediate",
                           Tipo == "SF" & idade == "> 20" ~ "SF_advanced",
                           TRUE ~ NA_character_)) %>% 
@@ -303,7 +293,7 @@ all_lulc_prec_stages <- all_lulc_prec %>%
 
 all_lulc_prec_final <- all_lulc_prec_stages %>% 
   mutate(type = case_when(Tipo == "PF" ~ 1,
-                          Tipo == "SF_beginning" ~ 2, 
+                          Tipo == "SF_early" ~ 2, 
                           Tipo == "SF_intermediate" ~ 3,
                           Tipo == "SF_advanced" ~ 4))
 
@@ -471,7 +461,7 @@ significance_results_t_prec <- data.frame(Intervalo = area_ranges)
 # Loop por cada região
 for (region in regions) {
   
-  p_values_pf_sf_beginning <- c()
+  p_values_pf_sf_early <- c()
   p_values_pf_sf_intermediate <- c()
   p_values_pf_sf_advanced <- c()
   
@@ -480,15 +470,15 @@ for (region in regions) {
     
     # Filtrando os dados
     pv_data <- all_pf_sf_prec %>% filter(region == !!region, ff_area == range, Tipo == "PF")
-    sv_beginning_data <- all_pf_sf_prec %>% filter(region == !!region, ff_area == range, Tipo == "SF_beginning")
+    sv_early_data <- all_pf_sf_prec %>% filter(region == !!region, ff_area == range, Tipo == "SF_early")
     sv_intermediate_data <- all_pf_sf_prec %>% filter(region == !!region, ff_area == range, Tipo == "SF_intermediate")
     sv_advanced_data <- all_pf_sf_prec %>% filter(region == !!region, ff_area == range, Tipo == "SF_advanced")
     
     # Teste t para cada comparação com PF
-    if (nrow(pv_data) > 1 && nrow(sv_beginning_data) > 1) {
-      p_values_pf_sf_beginning <- c(p_values_pf_sf_beginning, t.test(pv_data$Prec, sv_beginning_data$Prec, var.equal = TRUE)$p.value)
+    if (nrow(pv_data) > 1 && nrow(sv_early_data) > 1) {
+      p_values_pf_sf_early <- c(p_values_pf_sf_early, t.test(pv_data$Prec, sv_early_data$Prec, var.equal = TRUE)$p.value)
     } else {
-      p_values_pf_sf_beginning <- c(p_values_pf_sf_beginning, NA)
+      p_values_pf_sf_early <- c(p_values_pf_sf_early, NA)
     }
     
     if (nrow(pv_data) > 1 && nrow(sv_intermediate_data) > 1) {
@@ -505,7 +495,7 @@ for (region in regions) {
   }
   
   # Adicionando ao DataFrame
-  significance_results_t_prec[[paste0(region, "_PF_vs_SF_beginning")]] <- p_values_pf_sf_beginning
+  significance_results_t_prec[[paste0(region, "_PF_vs_SF_early")]] <- p_values_pf_sf_early
   significance_results_t_prec[[paste0(region, "_PF_vs_SF_intermediate")]] <- p_values_pf_sf_intermediate
   significance_results_t_prec[[paste0(region, "_PF_vs_SF_advanced")]] <- p_values_pf_sf_advanced
 }
@@ -537,7 +527,7 @@ significance_results_w_prec <- data.frame(Intervalo = area_ranges)
 # Loop por cada região
 for (region in regions) {
   
-  p_values_pf_sf_beginning <- c()
+  p_values_pf_sf_early <- c()
   p_values_pf_sf_intermediate <- c()
   p_values_pf_sf_advanced <- c()
   
@@ -546,15 +536,15 @@ for (region in regions) {
     
     # Filtrando os dados
     pv_data <- all_pf_sf_prec %>% filter(region == !!region, ff_area == range, Tipo == "PF")
-    sv_beginning_data <- all_pf_sf_prec %>% filter(region == !!region, ff_area == range, Tipo == "SF_beginning")
+    sv_early_data <- all_pf_sf_prec %>% filter(region == !!region, ff_area == range, Tipo == "SF_early")
     sv_intermediate_data <- all_pf_sf_prec %>% filter(region == !!region, ff_area == range, Tipo == "SF_intermediate")
     sv_advanced_data <- all_pf_sf_prec %>% filter(region == !!region, ff_area == range, Tipo == "SF_advanced")
     
     # Teste de Wilcoxon para cada comparação com PF
-    if (nrow(pv_data) > 1 && nrow(sv_beginning_data) > 1) {
-      p_values_pf_sf_beginning <- c(p_values_pf_sf_beginning, wilcox.test(pv_data$Prec, sv_beginning_data$Prec, paired = FALSE)$p.value)
+    if (nrow(pv_data) > 1 && nrow(sv_early_data) > 1) {
+      p_values_pf_sf_early <- c(p_values_pf_sf_early, wilcox.test(pv_data$Prec, sv_early_data$Prec, paired = FALSE)$p.value)
     } else {
-      p_values_pf_sf_beginning <- c(p_values_pf_sf_beginning, NA)
+      p_values_pf_sf_early <- c(p_values_pf_sf_early, NA)
     }
     
     if (nrow(pv_data) > 1 && nrow(sv_intermediate_data) > 1) {
@@ -571,7 +561,7 @@ for (region in regions) {
   }
   
   # Adicionando ao DataFrame
-  significance_results_w_prec[[paste0(region, "_PF_vs_SF_beginning")]] <- p_values_pf_sf_beginning
+  significance_results_w_prec[[paste0(region, "_PF_vs_SF_early")]] <- p_values_pf_sf_early
   significance_results_w_prec[[paste0(region, "_PF_vs_SF_intermediate")]] <- p_values_pf_sf_intermediate
   significance_results_w_prec[[paste0(region, "_PF_vs_SF_advanced")]] <- p_values_pf_sf_advanced
 }
@@ -602,7 +592,7 @@ all_pf_sf_prec$Significant <- ifelse(all_pf_sf_prec$P_value < 0.05, "*", "")
 
 # Reordenar os níveis de 'Tipo'
 all_pf_sf_prec <- all_pf_sf_prec %>%
-  mutate(Tipo = factor(Tipo, levels = c("PF", "SF_beginning", "SF_intermediate", "SF_advanced")))
+  mutate(Tipo = factor(Tipo, levels = c("PF", "SF_early", "SF_intermediate", "SF_advanced")))
 
 # Função para calcular o valor máximo do bigode
 get_whisker_max <- function(x) {
@@ -621,7 +611,7 @@ significance_positions <- all_pf_sf_prec %>%
   mutate(
     asterisk_y = max_whisker + 15, # Ajuste para posicionar acima do bigode
     x_adjust = case_when(
-      Tipo == "SF_beginning" ~ -0.1,
+      Tipo == "SF_early" ~ -0.1,
       Tipo == "SF_intermediate" ~ 0.1,
       Tipo == "SF_advanced" ~ 0.3
     ),
@@ -648,7 +638,7 @@ p_ast_prec_w <- all_pf_sf_prec %>%
     axis.title = element_text(size = 14, margin = margin(r = 20)),
     strip.text = element_text(size = 14, face = "bold", family = "serif")
   ) +
-  scale_fill_manual(values = c("midnightblue", "#87CEFA", "#1E90FF", "#0000FF"), name = NULL, labels = c("PF", "SF beginning", "SF intermediate", "SF advanced")) +
+  scale_fill_manual(values = c("midnightblue", "#87CEFA", "#1E90FF", "#0000FF"), name = NULL, labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +
   scale_y_continuous(breaks = seq(0, max(all_pf_sf_prec$Prec, na.rm = TRUE), by = 250)) +
   labs(
     x = "",
@@ -717,7 +707,7 @@ all_lulc_evapo = all_lulc_50_fil %>%
 # Criar o novo dataframe com as categorias desejadas
 all_lulc_evapo_stages <- all_lulc_evapo %>%
   mutate(Tipo = case_when(Tipo == "PF" ~ "PF", 
-                          Tipo == "SF" & idade == "<= 10" ~ "SF_beginning", 
+                          Tipo == "SF" & idade == "<= 10" ~ "SF_early", 
                           Tipo == "SF" & idade == "10-20" ~ "SF_intermediate", 
                           Tipo == "SF" & idade == "> 20" ~ "SF_advanced",
                           TRUE ~ NA_character_ )) %>% 
@@ -726,7 +716,7 @@ all_lulc_evapo_stages <- all_lulc_evapo %>%
 
 all_lulc_evapo_final <- all_lulc_evapo_stages %>% 
   mutate(type = case_when(Tipo == "PF" ~ 1,
-                          Tipo == "SF_beginning" ~ 2, 
+                          Tipo == "SF_early" ~ 2, 
                           Tipo == "SF_intermediate" ~ 3,
                           Tipo == "SF_advanced" ~ 4))
 
@@ -819,7 +809,7 @@ levene_test_results_evapo <- do.call(rbind, results_list_evapo)
 print(levene_test_results_evapo)
 
 # Exportar os resultados para um arquivo Excel
-write_xlsx(levene_test_results_evapo, "data_group/levene_test_evapo_resultS.xlsx")
+write_xlsx(levene_test_results_evapo, "data_group/levene_test_evapo_results.xlsx")
 
 
 # ---- INDEPENDÊNCIA ----
@@ -892,7 +882,7 @@ significance_results_t_evapo <- data.frame(Intervalo = area_ranges)  # Adiciona 
 # Loop por cada região
 for (region in regions) {
   
-  p_values_pf_sf_beginning <- c()
+  p_values_pf_sf_early <- c()
   p_values_pf_sf_intermediate <- c()
   p_values_pf_sf_advanced <- c()
   
@@ -901,15 +891,15 @@ for (region in regions) {
     
     # Filtrando os dados para PF e SF no intervalo atual e região atual
     pv_data <- all_pf_sf_evapo %>% filter(region == !!region, ff_area == range, Tipo == "PF")
-    sv_beginning_data <- all_pf_sf_evapo %>% filter(region == !!region, ff_area == range, Tipo == "SF_beginning")
+    sv_early_data <- all_pf_sf_evapo %>% filter(region == !!region, ff_area == range, Tipo == "SF_early")
     sv_intermediate_data <- all_pf_sf_evapo %>% filter(region == !!region, ff_area == range, Tipo == "SF_intermediate")
     sv_advanced_data <- all_pf_sf_evapo %>% filter(region == !!region, ff_area == range, Tipo == "SF_advanced")
     
     # Teste t para cada comparação com PF
-    if (nrow(pv_data) > 1 && nrow(sv_beginning_data) > 1) {
-      p_values_pf_sf_beginning <- c(p_values_pf_sf_beginning, t.test(pv_data$Evapo, sv_beginning_data$Evapo, var.equal = TRUE)$p.value)
+    if (nrow(pv_data) > 1 && nrow(sv_early_data) > 1) {
+      p_values_pf_sf_early <- c(p_values_pf_sf_early, t.test(pv_data$Evapo, sv_early_data$Evapo, var.equal = TRUE)$p.value)
     } else {
-      p_values_pf_sf_beginning <- c(p_values_pf_sf_beginning, NA)
+      p_values_pf_sf_early <- c(p_values_pf_sf_early, NA)
     }
     
     if (nrow(pv_data) > 1 && nrow(sv_intermediate_data) > 1) {
@@ -926,7 +916,7 @@ for (region in regions) {
   }
   
   # Adicionando ao DataFrame
-  significance_results_t_evapo[[paste0(region, "_PF_vs_SF_beginning")]] <- p_values_pf_sf_beginning
+  significance_results_t_evapo[[paste0(region, "_PF_vs_SF_early")]] <- p_values_pf_sf_early
   significance_results_t_evapo[[paste0(region, "_PF_vs_SF_intermediate")]] <- p_values_pf_sf_intermediate
   significance_results_t_evapo[[paste0(region, "_PF_vs_SF_advanced")]] <- p_values_pf_sf_advanced
 }
@@ -958,7 +948,7 @@ significance_results_w_evapo <- data.frame(Intervalo = area_ranges)
 # Loop por cada região
 for (region in regions) {
   
-  p_values_pf_sf_beginning <- c()
+  p_values_pf_sf_early <- c()
   p_values_pf_sf_intermediate <- c()
   p_values_pf_sf_advanced <- c()
   
@@ -967,15 +957,15 @@ for (region in regions) {
     
     # Filtrando os dados
     pv_data <- all_pf_sf_evapo %>% filter(region == !!region, ff_area == range, Tipo == "PF")
-    sv_beginning_data <- all_pf_sf_evapo %>% filter(region == !!region, ff_area == range, Tipo == "SF_beginning")
+    sv_early_data <- all_pf_sf_evapo %>% filter(region == !!region, ff_area == range, Tipo == "SF_early")
     sv_intermediate_data <- all_pf_sf_evapo %>% filter(region == !!region, ff_area == range, Tipo == "SF_intermediate")
     sv_advanced_data <- all_pf_sf_evapo %>% filter(region == !!region, ff_area == range, Tipo == "SF_advanced")
     
     # Teste de Wilcoxon para cada comparação com PF
-    if (nrow(pv_data) > 1 && nrow(sv_beginning_data) > 1) {
-      p_values_pf_sf_beginning <- c(p_values_pf_sf_beginning, wilcox.test(pv_data$Evapo, sv_beginning_data$Evapo, paired = FALSE)$p.value)
+    if (nrow(pv_data) > 1 && nrow(sv_early_data) > 1) {
+      p_values_pf_sf_early <- c(p_values_pf_sf_early, wilcox.test(pv_data$Evapo, sv_early_data$Evapo, paired = FALSE)$p.value)
     } else {
-      p_values_pf_sf_beginning <- c(p_values_pf_sf_beginning, NA)
+      p_values_pf_sf_early <- c(p_values_pf_sf_early, NA)
     }
     
     if (nrow(pv_data) > 1 && nrow(sv_intermediate_data) > 1) {
@@ -992,7 +982,7 @@ for (region in regions) {
   }
   
   # Adicionando ao DataFrame
-  significance_results_w_evapo[[paste0(region, "_PF_vs_SF_beginning")]] <- p_values_pf_sf_beginning
+  significance_results_w_evapo[[paste0(region, "_PF_vs_SF_early")]] <- p_values_pf_sf_early
   significance_results_w_evapo[[paste0(region, "_PF_vs_SF_intermediate")]] <- p_values_pf_sf_intermediate
   significance_results_w_evapo[[paste0(region, "_PF_vs_SF_advanced")]] <- p_values_pf_sf_advanced
 }
@@ -1022,7 +1012,7 @@ all_pf_sf_evapo$Significant <- ifelse(all_pf_sf_evapo$P_value < 0.05, "*", "")
 
 # Reordenar os níveis de 'Tipo'
 all_pf_sf_evapo <- all_pf_sf_evapo %>%
-  mutate(Tipo = factor(Tipo, levels = c("PF", "SF_beginning", "SF_intermediate", "SF_advanced")))
+  mutate(Tipo = factor(Tipo, levels = c("PF", "SF_early", "SF_intermediate", "SF_advanced")))
 
 # Função para calcular o valor máximo do bigode
 get_whisker_max <- function(x) {
@@ -1041,7 +1031,7 @@ significance_positions <- all_pf_sf_evapo %>%
   mutate(
     asterisk_y = max_whisker + 10, # Ajuste para posicionar acima do bigode
     x_adjust = case_when(
-      Tipo == "SF_beginning" ~ -0.1,
+      Tipo == "SF_early" ~ -0.1,
       Tipo == "SF_intermediate" ~ 0.1,
       Tipo == "SF_advanced" ~ 0.3
     ),
@@ -1072,7 +1062,7 @@ p_ast_evapo_w <- all_pf_sf_evapo %>%
     panel.spacing.y = unit(1, "lines"),
     axis.title = element_text(size = 14, margin = margin(r = 20)),
     strip.text = element_blank()) +
-  scale_fill_manual(values = c("#02401B", "lightgreen", "green1", "green4"), name = NULL, labels = c("PF", "SF beginning", "SF intermediate", "SF advanced")) +
+  scale_fill_manual(values = c("#02401B", "lightgreen", "green1", "green4"), name = NULL, labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +
   #geom_vline(xintercept = c(1,2,3,4,5,6,7,8,9,10), linetype = "dashed", color = "lightgray", size = 0.5) +
   #labels = c("Primary Vegetation           ", "Secondary Vegetation"))+
   labs(x = "",
@@ -1141,7 +1131,7 @@ all_lulc_temp = all_lulc_50_fil %>%
 # Criar o novo dataframe com as categorias desejadas
 all_lulc_temp_stages <- all_lulc_temp %>%
   mutate(Tipo = case_when(Tipo == "PF" ~ "PF",
-                          Tipo == "SF" & idade == "<= 10" ~ "SF_beginning",
+                          Tipo == "SF" & idade == "<= 10" ~ "SF_early",
                           Tipo == "SF" & idade == "10-20" ~ "SF_intermediate",
                           Tipo == "SF" & idade == "> 20" ~ "SF_advanced",
                           TRUE ~ NA_character_ )) %>% 
@@ -1151,7 +1141,7 @@ all_lulc_temp_stages <- all_lulc_temp %>%
 
 all_lulc_temp_final <- all_lulc_temp_stages %>% 
   mutate(type = case_when(Tipo == "PF" ~ 1,
-                          Tipo == "SF_beginning" ~ 2, 
+                          Tipo == "SF_early" ~ 2, 
                           Tipo == "SF_intermediate" ~ 3,
                           Tipo == "SF_advanced" ~ 4))
 
@@ -1316,7 +1306,7 @@ significance_results_t_temp <- data.frame(Intervalo = area_ranges)  # Adiciona a
 # Loop por cada região
 for (region in regions) {
   
-  p_values_pf_sf_beginning <- c()
+  p_values_pf_sf_early <- c()
   p_values_pf_sf_intermediate <- c()
   p_values_pf_sf_advanced <- c()
   
@@ -1325,15 +1315,15 @@ for (region in regions) {
     
     # Filtrando os dados
     pv_data <- all_pf_sf_temp %>% filter(region == !!region, ff_area == range, Tipo == "PF")
-    sv_beginning_data <- all_pf_sf_temp %>% filter(region == !!region, ff_area == range, Tipo == "SF_beginning")
+    sv_early_data <- all_pf_sf_temp %>% filter(region == !!region, ff_area == range, Tipo == "SF_early")
     sv_intermediate_data <- all_pf_sf_temp %>% filter(region == !!region, ff_area == range, Tipo == "SF_intermediate")
     sv_advanced_data <- all_pf_sf_temp %>% filter(region == !!region, ff_area == range, Tipo == "SF_advanced")
     
     # Teste t para cada comparação com PF
-    if (nrow(pv_data) > 1 && nrow(sv_beginning_data) > 1) {
-      p_values_pf_sf_beginning <- c(p_values_pf_sf_beginning, t.test(pv_data$Temp, sv_beginning_data$Temp, var.equal = TRUE)$p.value)
+    if (nrow(pv_data) > 1 && nrow(sv_early_data) > 1) {
+      p_values_pf_sf_early <- c(p_values_pf_sf_early, t.test(pv_data$Temp, sv_early_data$Temp, var.equal = TRUE)$p.value)
     } else {
-      p_values_pf_sf_beginning <- c(p_values_pf_sf_beginning, NA)
+      p_values_pf_sf_early <- c(p_values_pf_sf_early, NA)
     }
     
     if (nrow(pv_data) > 1 && nrow(sv_intermediate_data) > 1) {
@@ -1350,7 +1340,7 @@ for (region in regions) {
   }
   
   # Adicionando ao DataFrame
-  significance_results_t_temp[[paste0(region, "_PF_vs_SF_beginning")]] <- p_values_pf_sf_beginning
+  significance_results_t_temp[[paste0(region, "_PF_vs_SF_early")]] <- p_values_pf_sf_early
   significance_results_t_temp[[paste0(region, "_PF_vs_SF_intermediate")]] <- p_values_pf_sf_intermediate
   significance_results_t_temp[[paste0(region, "_PF_vs_SF_advanced")]] <- p_values_pf_sf_advanced
 }
@@ -1382,7 +1372,7 @@ significance_results_w_temp <- data.frame(Intervalo = area_ranges)  # Adiciona a
 # Loop por cada região
 for (region in regions) {
   
-  p_values_pf_sf_beginning <- c()
+  p_values_pf_sf_early <- c()
   p_values_pf_sf_intermediate <- c()
   p_values_pf_sf_advanced <- c()
   
@@ -1391,15 +1381,15 @@ for (region in regions) {
     
     # Filtrando os dados
     pv_data <- all_pf_sf_temp %>% filter(region == !!region, ff_area == range, Tipo == "PF")
-    sv_beginning_data <- all_pf_sf_temp %>% filter(region == !!region, ff_area == range, Tipo == "SF_beginning")
+    sv_early_data <- all_pf_sf_temp %>% filter(region == !!region, ff_area == range, Tipo == "SF_early")
     sv_intermediate_data <- all_pf_sf_temp %>% filter(region == !!region, ff_area == range, Tipo == "SF_intermediate")
     sv_advanced_data <- all_pf_sf_temp %>% filter(region == !!region, ff_area == range, Tipo == "SF_advanced")
     
     # Teste de Wilcoxon para cada comparação com PF
-    if (nrow(pv_data) > 1 && nrow(sv_beginning_data) > 1) {
-      p_values_pf_sf_beginning <- c(p_values_pf_sf_beginning, wilcox.test(pv_data$Temp, sv_beginning_data$Temp, paired = FALSE)$p.value)
+    if (nrow(pv_data) > 1 && nrow(sv_early_data) > 1) {
+      p_values_pf_sf_early <- c(p_values_pf_sf_early, wilcox.test(pv_data$Temp, sv_early_data$Temp, paired = FALSE)$p.value)
     } else {
-      p_values_pf_sf_beginning <- c(p_values_pf_sf_beginning, NA)
+      p_values_pf_sf_early <- c(p_values_pf_sf_early, NA)
     }
     
     if (nrow(pv_data) > 1 && nrow(sv_intermediate_data) > 1) {
@@ -1416,7 +1406,7 @@ for (region in regions) {
   }
   
   # Adicionando ao DataFrame
-  significance_results_w_temp[[paste0(region, "_PF_vs_SF_beginning")]] <- p_values_pf_sf_beginning
+  significance_results_w_temp[[paste0(region, "_PF_vs_SF_early")]] <- p_values_pf_sf_early
   significance_results_w_temp[[paste0(region, "_PF_vs_SF_intermediate")]] <- p_values_pf_sf_intermediate
   significance_results_w_temp[[paste0(region, "_PF_vs_SF_advanced")]] <- p_values_pf_sf_advanced
 }
@@ -1446,7 +1436,7 @@ all_pf_sf_temp$Significant <- ifelse(all_pf_sf_temp$P_value < 0.05, "*", "")
 
 # Reordenar os níveis de 'Tipo'
 all_pf_sf_temp <- all_pf_sf_temp %>%
-  mutate(Tipo = factor(Tipo, levels = c("PF", "SF_beginning", "SF_intermediate", "SF_advanced")))
+  mutate(Tipo = factor(Tipo, levels = c("PF", "SF_early", "SF_intermediate", "SF_advanced")))
 
 # Função para calcular o valor máximo do bigode
 get_whisker_max <- function(x) {
@@ -1465,7 +1455,7 @@ significance_positions <- all_pf_sf_temp %>%
   mutate(
     asterisk_y = max_whisker + 0.1, # Ajuste para posicionar acima do bigode
     x_adjust = case_when(
-      Tipo == "SF_beginning" ~ -0.1,
+      Tipo == "SF_early" ~ -0.1,
       Tipo == "SF_intermediate" ~ 0.1,
       Tipo == "SF_advanced" ~ 0.3
     ),
@@ -1495,10 +1485,10 @@ p_ast_temp_w <-all_pf_sf_temp %>%
     panel.spacing.y = unit(1, "lines"),
     axis.title = element_text(size = 14, margin = margin(r = 20)),
     strip.text = element_blank()) +
-  scale_fill_manual(values = c("#7F3B08", "#FEE0B6", "#FDB863", "#E08214"), name = NULL, labels = c("PF", "SF beginning", "SF intermediate", "SF advanced")) +
+  scale_fill_manual(values = c("#7F3B08", "#FEE0B6", "#FDB863", "#E08214"), name = NULL, labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +
   scale_y_continuous(breaks = 23:27, limits = c(NA, 27), expand = expansion(mult = c(0.01, 0.05)), 
   labels = label_number(width = 6, zero.print = TRUE)) + 
-   labs(x = "Fractional forest cover (%)",
+   labs(x = "Fractional cover (%)",
         y = "Average annual mean \n temperature (°C·yr⁻¹)",
         #y = expression(atop("Average annual mean", paste("temperature (", degree, "C·yr"^-1, ")")))
         ) +
@@ -1551,8 +1541,6 @@ ggsave("fig/painels/painel_fraction_forest_x_prec.png",
 ggsave("fig/painels/painel_fraction_forest_x_prec.pdf", 
        plot = painel_obs, width = 10, height = 12, bg = "white")
 
-gc()
-
 ```
 
 # Modeling
@@ -1573,6 +1561,7 @@ library(patchwork)
 library(emmeans)
 library(stringr)
 library(DescTools)
+library(openxlsx)
 
 ```
 
@@ -1708,7 +1697,7 @@ all_forest_prec$rownames <- rownames(all_forest_prec)
 # Extrai o tipo de vegetação a partir dos nomes das linhas
 all_forest_prec$vegetation <- case_when(
   str_detect(all_forest_prec$rownames, "TipoSF_advanced") ~ "SF_advanced",
-  str_detect(all_forest_prec$rownames, "TipoSF_beginning") ~ "SF_beginning",
+  str_detect(all_forest_prec$rownames, "TipoSF_early") ~ "SF_early",
   str_detect(all_forest_prec$rownames, "TipoSF_intermediate") ~ "SF_intermediate",
   TRUE ~ "PF"  # Assumimos que se não é SF, então é Primária (PF)
 )
@@ -1737,6 +1726,50 @@ em_df_sba$region <- "SBA"
 # Juntar todos
 em_all <- bind_rows(em_df_cba, em_df_eba, em_df_sba)
 
+pwpm(em_cba)
+pwpm(em_eba)
+pwpm(em_sba)
+
+# Salvar
+write_xlsx(em_all, "data_group/fixed_effects_prec.xlsx")
+
+```
+
+#### Matriz
+
+```{r}
+
+# Definir ordem desejada
+nivel_ordem <- c("PF", "SF_early", "SF_intermediate", "SF_advanced")
+
+# Comparações entre tipos dentro de cada faixa de ff_area
+em_cba_pw <- emmeans(model_CBA_prec, ~ Tipo | ff_area,
+                     at = list(Tipo = nivel_ordem))
+
+em_eba_pw <- emmeans(model_EBA_prec, ~ Tipo | ff_area,
+                     at = list(Tipo = nivel_ordem))
+
+em_sba_pw <- emmeans(model_SBA_prec, ~ Tipo | ff_area,
+                     at = list(Tipo = nivel_ordem))
+
+# Mostrar matriz de p-valores no console para cada região
+pwpm(em_cba_pw, sort = FALSE)
+
+pwpm(em_eba_pw, sort = FALSE)
+
+pwpm(em_sba_pw, sort = FALSE)
+
+
+# Extrair matriz de p-valores formatada
+pw_cba_df <- as.data.frame(pwpm(em_cba_pw, sort = FALSE))
+pw_eba_df <- as.data.frame(pwpm(em_eba_pw, sort = FALSE))
+pw_sba_df <- as.data.frame(pwpm(em_sba_pw, sort = FALSE))
+
+pw_df <- rbind(pw_cba_df, pw_eba_df, pw_sba_df)
+
+# Exportar para arquivo xlsx
+write.xlsx(pw_df, file = "data_group/matriz_contrastes_pwpm_prec.xlsx", rowNames = TRUE)
+
 ```
 
 #### Constrastes e significancia
@@ -1761,7 +1794,7 @@ contrast_SBA_df <- get_contrasts(model_SBA_prec, "SBA")
 all_contrasts <- bind_rows(contrast_CBA_df, contrast_EBA_df, contrast_SBA_df)
 
 # Manter apenas os contrastes entre PF e SF_* (não entre os SFs entre si)
-sf_levels <- c("SF_beginning", "SF_intermediate", "SF_advanced")
+sf_levels <- c("SF_early", "SF_intermediate", "SF_advanced")
 all_contrasts <- all_contrasts %>%
   filter((str_detect(contrast, "PF") & str_detect(contrast, "SF_")))
 
@@ -1785,7 +1818,10 @@ all_contrasts$ff_area <- factor(all_contrasts$ff_area,
 
 # Ajusta ordem dos tipos de vegetação se necessário
 all_contrasts$tipo_sf <- factor(all_contrasts$tipo_sf, 
-                                levels = c("SF_beginning", "SF_intermediate", "SF_advanced"))
+                                levels = c("SF_early", "SF_intermediate", "SF_advanced"))
+
+# Salvar
+write_xlsx(all_contrasts, "data_group/contrast_PF_SF_prec.xlsx")
 
 ```
 
@@ -1795,8 +1831,18 @@ all_contrasts$tipo_sf <- factor(all_contrasts$tipo_sf,
 
 # Plot de pontos
 plot_point_prec <- function(region_name, show_y = TRUE, show_legend = FALSE, show_y_axes = TRUE) {
-  p <- ggplot(filter(em_all, region == region_name), 
-              aes(x = ff_area, y = emmean, color = Tipo, group = Tipo)) +
+  p <- ggplot(filter(em_all, region == region_name) %>%
+    mutate(
+      Tipo = factor(Tipo) %>%
+        fct_relevel("PF", "SF_early", "SF_intermediate", "SF_advanced") %>%
+        fct_recode(
+          "PF" = "PF",
+          "SF early" = "SF_early",
+          "SF intermediate" = "SF_intermediate",
+          "SF advanced" = "SF_advanced"
+        )
+    ),
+    aes(x = ff_area, y = emmean, color = Tipo, group = Tipo)) +
     geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL),
                   position = position_dodge(width = 0.8), width = 0.6, size = 0.5) +
     geom_point(position = position_dodge(width = 0.8), size = 1.5) +
@@ -1827,9 +1873,9 @@ plot_point_prec <- function(region_name, show_y = TRUE, show_legend = FALSE, sho
 # Atualizar ordem dos fatores e renomear os labels
 all_contrasts <- all_contrasts %>%
   mutate(
-    tipo_sf = factor(tipo_sf, levels = c("SF_beginning", "SF_intermediate", "SF_advanced")),
+    tipo_sf = factor(tipo_sf, levels = c("SF_early", "SF_intermediate", "SF_advanced")),
     tipo_sf_label = fct_recode(tipo_sf,
-                               "SF beginning" = "SF_beginning",
+                               "SF early" = "SF_early",
                                "SF intermediate" = "SF_intermediate",
                                "SF advanced" = "SF_advanced")
   )
@@ -1849,8 +1895,8 @@ plot_heat_prec <- function(region_name, show_legend = FALSE, show_y_labels = TRU
   ggplot(filter(all_contrasts, region == region_name), 
          aes(x = ff_area, y = tipo_sf_label, fill = estimate_cat)) +
     geom_tile(color = "white", height = 0.7) +
-    geom_text(aes(label = sig_label), size = 3, color = "red", family = "serif") +
-    scale_fill_manual(values = c("<100" = "#87CEFA", "100–200" = "#1E90FF", ">200" = "#0000FF"),
+    geom_text(aes(label = sig_label), size = 3, color = "black", family = "serif") +
+    scale_fill_manual(values = c("<100" = "#92C5DE", "100–200" = "#4393C3", ">200" = "#2166AC"),
                       limits = c("<100", "100–200", ">200"),
                       drop = FALSE,
                       name = expression(bold(atop(Delta~"Prec (PF - SF)", "(mm·yr"^{-1}*")"))))+
@@ -1920,7 +1966,7 @@ all_contrasts_sup <- purrr::map2_dfr(modelos, names(modelos), get_all_contrasts)
 str(all_contrasts_sup)
 
 # Extrair contrastes entre PF e SF
-sf_levels <- c("SF_beginning", "SF_intermediate", "SF_advanced")
+sf_levels <- c("SF_early", "SF_intermediate", "SF_advanced")
 
 all_contrasts_sup <- all_contrasts_sup %>%
   filter(str_detect(contrast, "PF") & str_detect(contrast, "SF_"))
@@ -1951,7 +1997,7 @@ all_contrasts_sup <- all_contrasts_sup %>%
 faixas_niveis <- c("1-10", "10-20", "20-30", "30-40", "40-50",
                    "50-60", "60-70", "70-80", "80-90", "90-100")
 
-sf_levels <- c("SF_beginning", "SF_intermediate", "SF_advanced")
+sf_levels <- c("SF_early", "SF_intermediate", "SF_advanced")
 
 all_contrasts_sup <- all_contrasts_sup %>%
   mutate(
@@ -1965,7 +2011,7 @@ all_contrasts_sup <- all_contrasts_sup %>%
 all_contrasts_sup <- all_contrasts_sup %>%
    mutate(
     tipo_SF = fct_recode(tipo_SF,
-                         "SF beginning" = "SF_beginning",
+                         "SF early" = "SF_early",
                          "SF intermediate" = "SF_intermediate",
                          "SF advanced" = "SF_advanced")
   ) %>% 
@@ -1985,7 +2031,7 @@ all_contrasts_sup <- all_contrasts_sup %>%
 heatmap_all_contrasts <- ggplot(all_contrasts_sup, 
                         aes(x = faixa_SF, y = faixa_PF, fill = estimate_class)) +
   geom_tile(color = "white") +
-  geom_text(aes(label = sig_label), color = "red", size = 3, family = "serif") +
+  geom_text(aes(label = sig_label), color = "black", size = 3, family = "serif") +
   scale_fill_manual(values = c(
     "<0" = "#F4A582",
     "0-100" = "#92C5DE",
@@ -1996,10 +2042,13 @@ heatmap_all_contrasts <- ggplot(all_contrasts_sup,
   facet_grid(tipo_SF ~ region) +
   theme_minimal(base_family = "serif") +
   theme(
+    text = element_text(size = 12, face = "bold", family = "serif"),
     axis.text.x = element_text(angle = 45, hjust = 1),
     strip.text = element_text(size = 12, face = "bold"),
-    axis.title = element_blank()
-  )
+    axis.text = element_text(size = 10, face = "plain", family = "serif", color = "black")
+  ) +
+   labs(x = "SF fractional cover (%)",
+        y = "PF fractional cover (%)")
 
 heatmap_all_contrasts
 
@@ -2050,6 +2099,9 @@ random_all <- bind_rows(random_cba, random_eba, random_sba)
 
 # Garantir que o ano seja ordenável
 random_all$ano <- as.numeric(as.character(random_all$ano))
+
+# Salvar
+write_xlsx(random_all, "data_group/random_effects_prec.xlsx")
 
 ```
 
@@ -2103,8 +2155,6 @@ r2_eba_prec_cond <- round(r2_eba_prec$R2_conditional, 3)
 
 r2_sba_prec = r2_nakagawa(model_SBA_prec)
 r2_sba_prec_cond <- round(r2_sba_prec$R2_conditional, 3)
-
-gc()
 
 ```
 
@@ -2160,7 +2210,7 @@ cba_pf = model_cba_prec |>
   theme(text = element_text(size = 12, face = "bold", family = "serif"),
         axis.title.y = element_text(margin = margin(r = 10)),
         plot.title = element_text(size = 14, face = "bold", family = "serif", hjust = 0.5))+
-  labs(x = "",
+  labs(x = "Observed \nprecipitation (mm·yr⁻¹)",
        y = "Predicted \nprecipitation (mm·yr⁻¹)",
        #y = expression(atop("Preditcted", paste("precipitation (mm·", yr^{-1}, ")"))),
        title = "CBA",
@@ -2183,7 +2233,7 @@ eba_pf = model_eba_prec |>
   theme(text = element_text(size = 12, face = "bold", family = "serif"),
         axis.title.y = element_text(margin = margin(r = 10)),
         plot.title = element_text(size = 14, face = "bold", family = "serif", hjust = 0.5))+
-  labs(x = "",
+  labs(x = "Observed \nprecipitation (mm·yr⁻¹)",
        y = "",
        title = "EBA",
        subtitle = paste("R² = ", r2_eba_prec_cond, 
@@ -2205,7 +2255,7 @@ sba_pf = model_sba_prec |>
   theme(text = element_text(size = 12, face = "bold", family = "serif"),
         axis.title.y = element_text(margin = margin(r = 10)),
         plot.title = element_text(size = 14, face = "bold", family = "serif", hjust = 0.5))+
-  labs(x = "",
+  labs(x = "Observed \nprecipitation (mm·yr⁻¹)",
        y = "",
        title = "SBA",
        subtitle = paste("R² = ", r2_sba_prec_cond, 
@@ -2279,7 +2329,7 @@ model_cba_all_prec[model_cba_all_prec$ff_area== "90-100",
 model_cba_all_prec[model_cba_all_prec$type== 1,
                      c("vegetation")]<-"PF"
 model_cba_all_prec[model_cba_all_prec$type== 2,
-                     c("vegetation")]<-"SF_beginning"
+                     c("vegetation")]<-"SF_early"
 model_cba_all_prec[model_cba_all_prec$type== 3,
                      c("vegetation")]<-"SF_intermediate"
 model_cba_all_prec[model_cba_all_prec$type== 4,
@@ -2293,7 +2343,7 @@ model_cba_all_prec
 
 # Reordenar os níveis de 'Tipo'
 model_cba_all_prec <- model_cba_all_prec %>%
-  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_beginning", "SF_intermediate", "SF_advanced")))
+  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_early", "SF_intermediate", "SF_advanced")))
 
 
 m1_prec_cba <- model_cba_all_prec %>%
@@ -2303,10 +2353,10 @@ m1_prec_cba <- model_cba_all_prec %>%
   geom_line(aes(y = predicted, group = vegetation), size = 1) +  # Mantém cor no grupo
   scale_color_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
                      name = NULL,  
-                     labels = c("PF", "SF beginning", "SF intermediate", "SF advanced")) +  
+                     labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +  
   scale_fill_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
                     name = NULL,  
-                    labels = c("PF", "SF beginning", "SF intermediate", "SF advanced")) +  
+                    labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +  
   facet_wrap(~Ano, nrow = 4, ncol = 6) +
   scale_y_continuous(breaks = seq(1800, 2700, by = 300)) +
   ggthemes::theme_few() +
@@ -2362,7 +2412,7 @@ model_eba_all_prec[model_eba_all_prec$ff_area== "90-100",
 model_eba_all_prec[model_eba_all_prec$type== 1,
                      c("vegetation")]<-"PF"
 model_eba_all_prec[model_eba_all_prec$type== 2,
-                     c("vegetation")]<-"SF_beginning"
+                     c("vegetation")]<-"SF_early"
 model_eba_all_prec[model_eba_all_prec$type== 3,
                      c("vegetation")]<-"SF_intermediate"
 model_eba_all_prec[model_eba_all_prec$type== 4,
@@ -2376,7 +2426,7 @@ model_eba_all_prec
 
 # Reordenar os níveis de 'Tipo'
 model_eba_all_prec <- model_eba_all_prec %>%
-  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_beginning", "SF_intermediate", "SF_advanced")))
+  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_early", "SF_intermediate", "SF_advanced")))
 
 
 m1_prec_eba <- model_eba_all_prec %>%
@@ -2386,10 +2436,10 @@ m1_prec_eba <- model_eba_all_prec %>%
   geom_line(aes(y = predicted, group = vegetation), size = 1) +  # Mantém cor no grupo
   scale_color_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
                      name = NULL,  
-                     labels = c("PF", "SF beginning", "SF intermediate", "SF advanced")) +  
+                     labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +  
   scale_fill_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
                     name = NULL,  
-                    labels = c("PF", "SF beginning", "SF intermediate", "SF advanced")) +
+                    labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +
   scale_y_continuous(breaks = seq(1700, 2600, by = 300)) +
   ggthemes::theme_few() +
   facet_wrap(~Ano, nrow = 4, ncol = 6) +
@@ -2444,7 +2494,7 @@ model_sba_all_prec[model_sba_all_prec$ff_area== "90-100",
 model_sba_all_prec[model_sba_all_prec$type== 1,
                      c("vegetation")]<-"PF"
 model_sba_all_prec[model_sba_all_prec$type== 2,
-                     c("vegetation")]<-"SF_beginning"
+                     c("vegetation")]<-"SF_early"
 model_sba_all_prec[model_sba_all_prec$type== 3,
                      c("vegetation")]<-"SF_intermediate"
 model_sba_all_prec[model_sba_all_prec$type== 4,
@@ -2456,7 +2506,7 @@ model_sba_all_prec[model_sba_all_prec$type== 4,
 
 # Reordenar os níveis de 'Tipo'
 model_sba_all_prec <- model_sba_all_prec %>%
-  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_beginning", "SF_intermediate", "SF_advanced")))
+  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_early", "SF_intermediate", "SF_advanced")))
 
 model_sba_all_prec %>%
   ggplot(aes(x = area*10, y = Prec))+
@@ -2465,10 +2515,10 @@ model_sba_all_prec %>%
   geom_line(aes(y = predicted, group = vegetation, color = vegetation), size = 1)+
     scale_color_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
                      name = NULL,  
-                     labels = c("PF", "SF beginning", "SF intermediate", "SF advanced")) +  
+                     labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +  
     scale_fill_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
                     name = NULL,  
-                    labels = c("PF", "SF beginning", "SF intermediate", "SF advanced")) +
+                    labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +
   scale_y_continuous(breaks = seq(1600, 2500, by = 300)) +
   ggthemes::theme_few() +
   facet_wrap(~Ano, nrow = 4, ncol = 6) +
@@ -2621,7 +2671,7 @@ all_forest_evapo$rownames <- rownames(all_forest_evapo)
 # Extrai o tipo de vegetação a partir dos nomes das linhas
 all_forest_evapo$vegetation <- case_when(
   str_detect(all_forest_evapo$rownames, "TipoSF_advanced") ~ "SF_advanced",
-  str_detect(all_forest_evapo$rownames, "TipoSF_beginning") ~ "SF_beginning",
+  str_detect(all_forest_evapo$rownames, "TipoSF_early") ~ "SF_early",
   str_detect(all_forest_evapo$rownames, "TipoSF_intermediate") ~ "SF_intermediate",
   TRUE ~ "PF"  # Assumimos que se não é SF, então é Primária (PF)
 )
@@ -2650,9 +2700,49 @@ em_df_sba$region <- "SBA"
 # Juntar todos
 em_all <- bind_rows(em_df_cba, em_df_eba, em_df_sba)
 
+# Salvar
+write_xlsx(em_all, "data_group/fixed_effects_evapo.xlsx")
+
 ```
 
-#### Constrastes
+#### Matriz
+
+```{r}
+
+# Definir ordem desejada
+nivel_ordem <- c("PF", "SF_early", "SF_intermediate", "SF_advanced")
+
+# Comparações entre tipos dentro de cada faixa de ff_area
+em_cba_pw <- emmeans(model_CBA_evapo, ~ Tipo | ff_area,
+                     at = list(Tipo = nivel_ordem))
+
+em_eba_pw <- emmeans(model_EBA_evapo, ~ Tipo | ff_area,
+                     at = list(Tipo = nivel_ordem))
+
+em_sba_pw <- emmeans(model_SBA_evapo, ~ Tipo | ff_area,
+                     at = list(Tipo = nivel_ordem))
+
+# Mostrar matriz de p-valores no console para cada região
+pwpm(em_cba_pw, sort = FALSE)
+
+pwpm(em_eba_pw, sort = FALSE)
+
+pwpm(em_sba_pw, sort = FALSE)
+
+
+# Extrair matriz de p-valores formatada
+pw_cba_df <- as.data.frame(pwpm(em_cba_pw, sort = FALSE))
+pw_eba_df <- as.data.frame(pwpm(em_eba_pw, sort = FALSE))
+pw_sba_df <- as.data.frame(pwpm(em_sba_pw, sort = FALSE))
+
+pw_df <- rbind(pw_cba_df, pw_eba_df, pw_sba_df)
+
+# Exportar para arquivo xlsx
+write.xlsx(pw_df, file = "data_group/matriz_contrastes_pwpm_evapo.xlsx", rowNames = TRUE)
+
+```
+
+#### Constrastes e significancia
 
 ```{r}
 
@@ -2674,7 +2764,7 @@ contrast_SBA_df <- get_contrasts(model_SBA_evapo, "SBA")
 all_contrasts <- bind_rows(contrast_CBA_df, contrast_EBA_df, contrast_SBA_df)
 
 # Manter apenas os contrastes entre PF e SF_* (não entre os SFs entre si)
-sf_levels <- c("SF_beginning", "SF_intermediate", "SF_advanced")
+sf_levels <- c("SF_early", "SF_intermediate", "SF_advanced")
 all_contrasts <- all_contrasts %>%
   filter((str_detect(contrast, "PF") & str_detect(contrast, "SF_")))
 
@@ -2698,7 +2788,10 @@ all_contrasts$ff_area <- factor(all_contrasts$ff_area,
 
 # Ajusta ordem dos tipos de vegetação se necessário
 all_contrasts$tipo_sf <- factor(all_contrasts$tipo_sf, 
-                                levels = c("SF_beginning", "SF_intermediate", "SF_advanced"))
+                                levels = c("SF_early", "SF_intermediate", "SF_advanced"))
+
+# Salvar
+write_xlsx(all_contrasts, "data_group/contrast_PF_SF_evapo.xlsx")
 
 ```
 
@@ -2708,8 +2801,18 @@ all_contrasts$tipo_sf <- factor(all_contrasts$tipo_sf,
 
 # Plot de pontos
 plot_point_evapo <- function(region_name, show_y = TRUE, show_legend = FALSE, show_y_axes = TRUE) {
-  p <- ggplot(filter(em_all, region == region_name), 
-              aes(x = ff_area, y = emmean, color = Tipo, group = Tipo)) +
+  p <- ggplot(filter(em_all, region == region_name) %>%
+    mutate(
+      Tipo = factor(Tipo) %>%
+        fct_relevel("PF", "SF_early", "SF_intermediate", "SF_advanced") %>%
+        fct_recode(
+          "PF" = "PF",
+          "SF early" = "SF_early",
+          "SF intermediate" = "SF_intermediate",
+          "SF advanced" = "SF_advanced"
+        )
+    ),
+    aes(x = ff_area, y = emmean, color = Tipo, group = Tipo)) +
     geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL),
                   position = position_dodge(width = 0.8), width = 0.6, size = 0.5) +
     geom_point(position = position_dodge(width = 0.8), size = 1.5) +
@@ -2740,9 +2843,9 @@ plot_point_evapo <- function(region_name, show_y = TRUE, show_legend = FALSE, sh
 # Atualizar ordem dos fatores e renomear os labels
 all_contrasts <- all_contrasts %>%
   mutate(
-    tipo_sf = factor(tipo_sf, levels = c("SF_beginning", "SF_intermediate", "SF_advanced")),
+    tipo_sf = factor(tipo_sf, levels = c("SF_early", "SF_intermediate", "SF_advanced")),
     tipo_sf_label = fct_recode(tipo_sf,
-                               "SF beginning" = "SF_beginning",
+                               "SF early" = "SF_early",
                                "SF intermediate" = "SF_intermediate",
                                "SF advanced" = "SF_advanced")
   )
@@ -2762,7 +2865,7 @@ plot_heat_evapo <- function(region_name, show_legend = FALSE, show_y_labels = TR
   ggplot(filter(all_contrasts, region == region_name), 
          aes(x = ff_area, y = tipo_sf_label, fill = estimate_cat)) +
     geom_tile(color = "white", height = 0.7) +
-    geom_text(aes(label = sig_label), size = 3, color = "red", family = "serif") +
+    geom_text(aes(label = sig_label), size = 3, color = "black", family = "serif") +
     scale_fill_manual(values = c("<-30" = "#D6604D", "0 - -30" = "#F4A582", ">0" = "#92C5DE"),
                       limits = c("<-30", "0 - -30", ">0"),
                       drop = FALSE,
@@ -2833,7 +2936,7 @@ all_contrasts_sup <- purrr::map2_dfr(modelos, names(modelos), get_all_contrasts)
 str(all_contrasts_sup)
 
 # Extrair contrastes entre PF e SF
-sf_levels <- c("SF_beginning", "SF_intermediate", "SF_advanced")
+sf_levels <- c("SF_early", "SF_intermediate", "SF_advanced")
 
 all_contrasts_sup <- all_contrasts_sup %>%
   filter(str_detect(contrast, "PF") & str_detect(contrast, "SF_"))
@@ -2864,7 +2967,7 @@ all_contrasts_sup <- all_contrasts_sup %>%
 faixas_niveis <- c("1-10", "10-20", "20-30", "30-40", "40-50",
                    "50-60", "60-70", "70-80", "80-90", "90-100")
 
-sf_levels <- c("SF_beginning", "SF_intermediate", "SF_advanced")
+sf_levels <- c("SF_early", "SF_intermediate", "SF_advanced")
 
 all_contrasts_sup <- all_contrasts_sup %>%
   mutate(
@@ -2878,7 +2981,7 @@ all_contrasts_sup <- all_contrasts_sup %>%
 all_contrasts_sup <- all_contrasts_sup %>%
   mutate(
     tipo_SF = fct_recode(tipo_SF,
-                         "SF beginning" = "SF_beginning",
+                         "SF early" = "SF_early",
                          "SF intermediate" = "SF_intermediate",
                          "SF advanced" = "SF_advanced")
   ) %>% 
@@ -2897,7 +3000,7 @@ all_contrasts_sup <- all_contrasts_sup %>%
 heatmap_all_contrasts <- ggplot(all_contrasts_sup, 
                         aes(x = faixa_SF, y = faixa_PF, fill = estimate_class)) +
   geom_tile(color = "white") +
-  geom_text(aes(label = sig_label), color = "red", size = 3, family = "serif") +
+  geom_text(aes(label = sig_label), color = "black", size = 3, family = "serif") +
   scale_fill_manual(values = c(
   "<-100" = "#D6604D",
   "-100–0" = "#F4A582",
@@ -2907,10 +3010,13 @@ heatmap_all_contrasts <- ggplot(all_contrasts_sup,
   facet_grid(tipo_SF ~ region) +
   theme_minimal(base_family = "serif") +
   theme(
+    text = element_text(size = 12, face = "bold", family = "serif"),
     axis.text.x = element_text(angle = 45, hjust = 1),
     strip.text = element_text(size = 12, face = "bold"),
-    axis.title = element_blank()
-  )
+    axis.text = element_text(size = 10, face = "plain", family = "serif", color = "black")
+  ) +
+   labs(x = "SF fractional cover (%)",
+        y = "PF fractional cover (%)")
 
 heatmap_all_contrasts
 
@@ -2962,6 +3068,8 @@ random_all <- bind_rows(random_cba, random_eba, random_sba)
 # Garantir que o ano seja ordenável
 random_all$ano <- as.numeric(as.character(random_all$ano))
 
+# Salvar
+write_xlsx(random_all, "data_group/random_effects_evapo.xlsx")
 
 ```
 
@@ -3018,8 +3126,6 @@ r2_eba_evapo_cond <- round(r2_eba_evapo$R2_conditional, 3)
 r2_sba_evapo = r2_nakagawa(model_SBA_evapo)
 r2_sba_evapo_cond <- round(r2_sba_evapo$R2_conditional, 3)
 
-
-gc()
 ```
 
 #### CCC de Lins
@@ -3075,9 +3181,9 @@ cba_pf = model_cba_evapo |>
          text = element_text(size = 16, face = "bold", family = "serif"),
          axis.title.y = element_text(margin = margin(r = 10)),
          plot.title = element_text(size = 14, face = "bold", family = "serif", hjust = 0.5))+
-  labs(x = "",
+  labs(x = "Observed ET \n (mm·yr⁻¹)",
        y = "Predicted ET \n (mm·yr⁻¹)",
-       title = "CBA",
+       title = "",
        subtitle = paste("R² = ", r2_cba_evapo_cond, 
                       " | CCC = ", ccc_val_cba_evapo)) +
   theme(plot.subtitle = element_text(size = 14, face = "plain", family = "serif"))
@@ -3097,9 +3203,9 @@ eba_pf = model_eba_evapo |>
   theme(text = element_text(size = 14, face = "bold", family = "serif"),
         axis.title.y = element_text(margin = margin(r = 10)),
         plot.title = element_text(size = 14, face = "bold", family = "serif", hjust = 0.5))+
-  labs(x = "",
+  labs(x = "Observed ET \n (mm·yr⁻¹)",
        y = "",
-       title = "EBA",
+       title = "",
        subtitle = paste("R² = ", r2_eba_evapo_cond, 
                       " | CCC = ", ccc_val_eba_evapo)) +
   theme(plot.subtitle = element_text(size = 14, face = "plain", family = "serif"))
@@ -3119,9 +3225,9 @@ sba_pf = model_sba_evapo |>
   theme(text = element_text(size = 14, face = "bold", family = "serif"),
         axis.title.y = element_text(margin = margin(r = 10)),
         plot.title = element_text(size = 14, face = "bold", family = "serif", hjust = 0.5))+
-  labs(x = "",
+  labs(x = "Observed ET \n (mm·yr⁻¹)",
        y = "",
-       title = "SBA",
+       title = "",
        subtitle = paste("R² = ", r2_sba_evapo_cond, 
                       " | CCC = ", ccc_val_sba_evapo)) +
   theme(plot.subtitle = element_text(size = 14, face = "plain", family = "serif"))
@@ -3155,8 +3261,6 @@ p2_pred_evapo = (cba_pf + eba_pf + sba_pf) +
 p2_pred_evapo
 
 ggsave("fig/supplemental_material/predicted_observed_evapo.png", bg = "white", dpi = 600, width = 12, height = 5.5)
-
-gc()
 
 ```
 
@@ -3199,7 +3303,7 @@ model_cba_all_evapo[model_cba_all_evapo$type== 2,
 model_cba_all_evapo[model_cba_all_evapo$type== 1,
                      c("vegetation")]<-"PF"
 model_cba_all_evapo[model_cba_all_evapo$type== 2,
-                     c("vegetation")]<-"SF_beginning"
+                     c("vegetation")]<-"SF_early"
 model_cba_all_evapo[model_cba_all_evapo$type== 3,
                      c("vegetation")]<-"SF_intermediate"
 model_cba_all_evapo[model_cba_all_evapo$type== 4,
@@ -3213,7 +3317,7 @@ model_cba_all_evapo
 
 # Reordenar os níveis de 'Tipo'
 model_cba_all_evapo <- model_cba_all_evapo %>%
-  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_beginning", "SF_intermediate", "SF_advanced")))
+  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_early", "SF_intermediate", "SF_advanced")))
 
 
 model_cba_all_evapo %>%
@@ -3223,10 +3327,10 @@ model_cba_all_evapo %>%
   geom_line(aes(y = predicted, group = vegetation, color = vegetation), size = 1)+
     scale_color_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
                      name = NULL,  
-                     labels = c("PF", "SF beginning", "SF intermediate", "SF advanced")) +  
+                     labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +  
   scale_fill_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
                     name = NULL,  
-                    labels = c("PF", "SF beginning", "SF intermediate", "SF advanced")) +
+                    labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +
   scale_y_continuous(breaks = seq(1200, 1600, by = 100)) +
   ggthemes::theme_few() +
   facet_wrap(~Ano, nrow = 4, ncol = 6) +
@@ -3276,7 +3380,7 @@ model_eba_all_evapo[model_eba_all_evapo$ff_area== "90-100",
 model_eba_all_evapo[model_eba_all_evapo$type== 1,
                      c("vegetation")]<-"PF"
 model_eba_all_evapo[model_eba_all_evapo$type== 2,
-                     c("vegetation")]<-"SF_beginning"
+                     c("vegetation")]<-"SF_early"
 model_eba_all_evapo[model_eba_all_evapo$type== 3,
                      c("vegetation")]<-"SF_intermediate"
 model_eba_all_evapo[model_eba_all_evapo$type== 4,
@@ -3290,7 +3394,7 @@ model_eba_all_evapo
 
 # Reordenar os níveis de 'Tipo'
 model_eba_all_evapo <- model_eba_all_evapo %>%
-  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_beginning", "SF_intermediate", "SF_advanced")))
+  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_early", "SF_intermediate", "SF_advanced")))
 
 model_eba_all_evapo %>%
   ggplot(aes(x = area*10, y = Evapo))+
@@ -3299,10 +3403,10 @@ model_eba_all_evapo %>%
   geom_line(aes(y = predicted, group = vegetation, color = vegetation), size = 1)+
     scale_color_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
                      name = NULL,  
-                     labels = c("PF", "SF beginning", "SF intermediate", "SF advanced")) +  
+                     labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +  
   scale_fill_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
                     name = NULL,  
-                    labels = c("PF", "SF beginning", "SF intermediate", "SF advanced")) +  
+                    labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +  
   scale_y_continuous(breaks = seq(1300, 1700, by = 100)) +
   ggthemes::theme_few() +
   facet_wrap(~Ano, nrow = 4, ncol = 6) +
@@ -3353,7 +3457,7 @@ model_sba_all_evapo[model_sba_all_evapo$ff_area== "90-100",
 model_sba_all_evapo[model_sba_all_evapo$type== 1,
                      c("vegetation")]<-"PF"
 model_sba_all_evapo[model_sba_all_evapo$type== 2,
-                     c("vegetation")]<-"SF_beginning"
+                     c("vegetation")]<-"SF_early"
 model_sba_all_evapo[model_sba_all_evapo$type== 3,
                      c("vegetation")]<-"SF_intermediate"
 model_sba_all_evapo[model_sba_all_evapo$type== 4,
@@ -3367,7 +3471,7 @@ model_sba_all_evapo
 
 # Reordenar os níveis de 'Tipo'
 model_sba_all_evapo <- model_sba_all_evapo %>%
-  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_beginning", "SF_intermediate", "SF_advanced")))
+  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_early", "SF_intermediate", "SF_advanced")))
 
 model_sba_all_evapo %>%
   ggplot(aes(x = area*10, y = Evapo))+
@@ -3376,10 +3480,10 @@ model_sba_all_evapo %>%
   geom_line(aes(y = predicted, group = vegetation, color = vegetation), size = 1)+
     scale_color_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
                      name = NULL,  
-                     labels = c("PF", "SF beginning", "SF intermediate", "SF advanced")) +  
+                     labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +  
   scale_fill_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
                     name = NULL,  
-                    labels = c("PF", "SF beginning", "SF intermediate", "SF advanced")) +  
+                    labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +  
   scale_y_continuous(breaks = seq(1000, 1600, by = 150)) +
   ggthemes::theme_few() +
   facet_wrap(~Ano, nrow = 4, ncol = 6) +
@@ -3532,7 +3636,7 @@ all_forest_temp$rownames <- rownames(all_forest_temp)
 # Extrai o tipo de vegetação a partir dos nomes das linhas
 all_forest_temp$vegetation <- case_when(
   str_detect(all_forest_temp$rownames, "TipoSF_advanced") ~ "SF_advanced",
-  str_detect(all_forest_temp$rownames, "TipoSF_beginning") ~ "SF_beginning",
+  str_detect(all_forest_temp$rownames, "TipoSF_early") ~ "SF_early",
   str_detect(all_forest_temp$rownames, "TipoSF_intermediate") ~ "SF_intermediate",
   TRUE ~ "PF"  # Assumimos que se não é SF, então é Primária (PF)
 )
@@ -3561,9 +3665,49 @@ em_df_sba$region <- "SBA"
 # Juntar todos
 em_all <- bind_rows(em_df_cba, em_df_eba, em_df_sba)
 
+# Salvar
+write_xlsx(em_all, "data_group/fixed_effects_temp.xlsx")
+
 ```
 
-#### Constrastes
+#### Matriz
+
+```{r}
+
+# Definir ordem desejada
+nivel_ordem <- c("PF", "SF_early", "SF_intermediate", "SF_advanced")
+
+# Comparações entre tipos dentro de cada faixa de ff_area
+em_cba_pw <- emmeans(model_CBA_temp, ~ Tipo | ff_area,
+                     at = list(Tipo = nivel_ordem))
+
+em_eba_pw <- emmeans(model_EBA_temp, ~ Tipo | ff_area,
+                     at = list(Tipo = nivel_ordem))
+
+em_sba_pw <- emmeans(model_SBA_temp, ~ Tipo | ff_area,
+                     at = list(Tipo = nivel_ordem))
+
+# Mostrar matriz de p-valores no console para cada região
+pwpm(em_cba_pw, sort = FALSE)
+
+pwpm(em_eba_pw, sort = FALSE)
+
+pwpm(em_sba_pw, sort = FALSE)
+
+
+# Extrair matriz de p-valores formatada
+pw_cba_df <- as.data.frame(pwpm(em_cba_pw, sort = FALSE))
+pw_eba_df <- as.data.frame(pwpm(em_eba_pw, sort = FALSE))
+pw_sba_df <- as.data.frame(pwpm(em_sba_pw, sort = FALSE))
+
+pw_df <- rbind(pw_cba_df, pw_eba_df, pw_sba_df)
+
+# Exportar para arquivo xlsx
+write.xlsx(pw_df, file = "data_group/matriz_contrastes_pwpm_temp.xlsx", rowNames = TRUE)
+
+```
+
+#### Constrastes e significancia
 
 ```{r}
 
@@ -3585,7 +3729,7 @@ contrast_SBA_df <- get_contrasts(model_SBA_temp, "SBA")
 all_contrasts <- bind_rows(contrast_CBA_df, contrast_EBA_df, contrast_SBA_df)
 
 # Manter apenas os contrastes entre PF e SF_* (não entre os SFs entre si)
-sf_levels <- c("SF_beginning", "SF_intermediate", "SF_advanced")
+sf_levels <- c("SF_early", "SF_intermediate", "SF_advanced")
 all_contrasts <- all_contrasts %>%
   filter((str_detect(contrast, "PF") & str_detect(contrast, "SF_")))
 
@@ -3609,7 +3753,10 @@ all_contrasts$ff_area <- factor(all_contrasts$ff_area,
 
 # Ajusta ordem dos tipos de vegetação se necessário
 all_contrasts$tipo_sf <- factor(all_contrasts$tipo_sf, 
-                                levels = c("SF_beginning", "SF_intermediate", "SF_advanced"))
+                                levels = c("SF_early", "SF_intermediate", "SF_advanced"))
+
+# Salvar
+write_xlsx(all_contrasts, "data_group/contrast_PF_SF_temp.xlsx")
 
 ```
 
@@ -3619,8 +3766,18 @@ all_contrasts$tipo_sf <- factor(all_contrasts$tipo_sf,
 
 # Plot de pontos
 plot_point_temp <- function(region_name, show_y = TRUE, show_x = TRUE, show_legend = FALSE, show_y_axes = TRUE) {
-  p <- ggplot(filter(em_all, region == region_name), 
-              aes(x = ff_area, y = emmean, color = Tipo, group = Tipo)) +
+  p <- ggplot(filter(em_all, region == region_name)%>%
+    mutate(
+      Tipo = factor(Tipo) %>%
+        fct_relevel("PF", "SF_early", "SF_intermediate", "SF_advanced") %>%
+        fct_recode(
+          "PF" = "PF",
+          "SF early" = "SF_early",
+          "SF intermediate" = "SF_intermediate",
+          "SF advanced" = "SF_advanced"
+        )
+    ), 
+    aes(x = ff_area, y = emmean, color = Tipo, group = Tipo)) +
     geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL),
                   position = position_dodge(width = 0.8), width = 0.6, size = 0.5) +
     geom_point(position = position_dodge(width = 0.8), size = 1.5) +
@@ -3643,7 +3800,7 @@ plot_point_temp <- function(region_name, show_y = TRUE, show_x = TRUE, show_lege
     scale_color_manual(values = c("#7F3B08", "#FEE0B6", "#FDB863", "#E08214")) +
     scale_y_continuous(limits = c(24, 26.5), breaks = seq(24, 26.5, by = 0.5)) +
     #labs(y = if (show_y) "Temperature\nfixed effects (°C·yr⁻¹)" else NULL) +
-    labs(x = "Fractional forest cover (%)",
+    labs(x = "Fractional cover (%)",
          y = if (show_y) expression(bold(atop("Temperature", "fixed effects (°C·yr"^{-1}*")"))) else NULL) 
   
   return(p)
@@ -3652,9 +3809,9 @@ plot_point_temp <- function(region_name, show_y = TRUE, show_x = TRUE, show_lege
 # Atualizar ordem dos fatores e renomear os labels
 all_contrasts <- all_contrasts %>%
   mutate(
-    tipo_sf = factor(tipo_sf, levels = c("SF_beginning", "SF_intermediate", "SF_advanced")),
+    tipo_sf = factor(tipo_sf, levels = c("SF_early", "SF_intermediate", "SF_advanced")),
     tipo_sf_label = fct_recode(tipo_sf,
-                               "SF beginning" = "SF_beginning",
+                               "SF early" = "SF_early",
                                "SF intermediate" = "SF_intermediate",
                                "SF advanced" = "SF_advanced")
   )
@@ -3674,7 +3831,7 @@ plot_heat_temp <- function(region_name, show_legend = FALSE, show_y_labels = TRU
   ggplot(filter(all_contrasts, region == region_name), 
          aes(x = ff_area, y = tipo_sf_label, fill = estimate_cat)) +
     geom_tile(color = "white", height = 0.7) +
-    geom_text(aes(label = sig_label), size = 3, color = "red", family = "serif") +
+    geom_text(aes(label = sig_label), size = 3, color = "black", family = "serif") +
     scale_fill_manual(values = c("<-0.3" = "#4393C3", "0 - -0.3" = "#92C5DE", ">0" = "#D6604D"),
                       limits = c("<-0.3", "0 - -0.3", ">0"),
                       drop = FALSE,
@@ -3745,7 +3902,7 @@ all_contrasts_sup <- purrr::map2_dfr(modelos, names(modelos), get_all_contrasts)
 str(all_contrasts_sup)
 
 # Extrair contrastes entre PF e SF
-sf_levels <- c("SF_beginning", "SF_intermediate", "SF_advanced")
+sf_levels <- c("SF_early", "SF_intermediate", "SF_advanced")
 
 all_contrasts_sup <- all_contrasts_sup %>%
   filter(str_detect(contrast, "PF") & str_detect(contrast, "SF_"))
@@ -3776,7 +3933,7 @@ all_contrasts_sup <- all_contrasts_sup %>%
 faixas_niveis <- c("1-10", "10-20", "20-30", "30-40", "40-50",
                    "50-60", "60-70", "70-80", "80-90", "90-100")
 
-sf_levels <- c("SF_beginning", "SF_intermediate", "SF_advanced")
+sf_levels <- c("SF_early", "SF_intermediate", "SF_advanced")
 
 all_contrasts_sup <- all_contrasts_sup %>%
   mutate(
@@ -3790,7 +3947,7 @@ all_contrasts_sup <- all_contrasts_sup %>%
 all_contrasts_sup <- all_contrasts_sup %>%
    mutate(
     tipo_SF = fct_recode(tipo_SF,
-                         "SF beginning" = "SF_beginning",
+                         "SF early" = "SF_early",
                          "SF intermediate" = "SF_intermediate",
                          "SF advanced" = "SF_advanced")
   ) %>% 
@@ -3809,20 +3966,23 @@ all_contrasts_sup <- all_contrasts_sup %>%
 heatmap_all_contrasts <- ggplot(all_contrasts_sup, 
                         aes(x = faixa_SF, y = faixa_PF, fill = estimate_class)) +
   geom_tile(color = "white") +
-  geom_text(aes(label = sig_label), color = "red", size = 3, family = "serif") +
+  geom_text(aes(label = sig_label), color = "black", size = 3, family = "serif") +
   scale_fill_manual(values = c(
-  "<-0.6" = "#B2182B",
-  "-0.3 – -0.6" = "#D6604D",
-  "0 – -0.3" = "#F4A582",
-  ">0" = "#92C5DE"
+  "<-0.6" = "#2166AC",
+  "-0.3 – -0.6" = "#4393C3",
+  "0 – -0.3" = "#92C5DE",
+  ">0" = "#F4A582"
 ), name = expression(bold(atop(Delta~"LST (PF - SF)", "(°C·yr"^{-1}*")"))))+
   facet_grid(tipo_SF ~ region) +
   theme_minimal(base_family = "serif") +
   theme(
+    text = element_text(size = 12, face = "bold", family = "serif"),
     axis.text.x = element_text(angle = 45, hjust = 1),
     strip.text = element_text(size = 12, face = "bold"),
-    axis.title = element_blank()
-  )
+    axis.text = element_text(size = 10, face = "plain", family = "serif", color = "black")
+  ) +
+   labs(x = "SF fractional cover (%)",
+        y = "PF fractional cover (%)")
 
 heatmap_all_contrasts
 
@@ -3874,6 +4034,8 @@ random_all <- bind_rows(random_cba, random_eba, random_sba)
 # Garantir que o ano seja ordenável
 random_all$ano <- as.numeric(as.character(random_all$ano))
 
+# Salvar
+write_xlsx(random_all, "data_group/random_effects_temp.xlsx")
 
 ```
 
@@ -3982,9 +4144,9 @@ cba_pf = model_cba_temp |>
   theme(text = element_text(size = 14, face = "bold", family = "serif"),
         axis.title.y = element_text(margin = margin(r = 10)),
         plot.title = element_text(size = 14, face = "bold", family = "serif", hjust = 0.5))+
-  labs(x = "",
+  labs(x = "Observed LST \n (°C·yr⁻¹)",
        y = "Predicted LST \n (°C·yr⁻¹)",
-       title = "CBA",
+       title = "",
        subtitle = paste0("R² = ", r2_cba_temp_cond, 
                       " | CCC = ", ccc_val_cba_temp)) +
   theme(plot.subtitle = element_text(size = 14, face = "plain", family = "serif"))
@@ -4004,9 +4166,9 @@ eba_pf = model_eba_temp |>
   theme(text = element_text(size = 14, face = "bold", family = "serif"),
         axis.title.y = element_text(margin = margin(r = 10)),
         plot.title = element_text(size = 14, face = "bold", family = "serif", hjust = 0.5))+
-  labs(x = "",
+  labs(x = "Observed LST \n (°C·yr⁻¹)",
        y = "",
-       title = "EBA",
+       title = "",
        subtitle = paste0("R² = ", r2_eba_temp_cond, 
                       " | CCC = ", ccc_val_eba_temp)) +
   theme(plot.subtitle = element_text(size = 14, face = "plain", family = "serif"))
@@ -4026,9 +4188,9 @@ sba_pf = model_sba_temp |>
   theme(text = element_text(size = 14, face = "bold", family = "serif"),
         axis.title.y = element_text(margin = margin(r = 10)),
         plot.title = element_text(size = 14, face = "bold", family = "serif", hjust = 0.5))+
-  labs(x = "",
+  labs(x = "Observed LST \n (°C·yr⁻¹)",
        y = "",
-       title = "SBA",
+       title = "",
        subtitle = paste0("R² = ", r2_sba_temp_cond, 
                       " | CCC = ", ccc_val_sba_temp)) +
   theme(plot.subtitle = element_text(size = 14, face = "plain", family = "serif"))
@@ -4069,7 +4231,31 @@ gc()
 
 ```
 
-#### Model plotting
+## Painel Predict all variables
+
+```{r}
+
+# Combinar os três painéis em um único layout 3x3
+painel_pred_fixed <- ggarrange(
+  p1_pred_prec, p2_pred_evapo, p3_pred_temp,
+  ncol = 1, nrow = 3,
+  labels = c("A", "B", "C"),
+  font.label = list(color = "black", face = "bold", size = 14, family = "serif"),
+  align = "v",
+  heights = c(1, 1, 1)
+)
+
+# Visualizar
+painel_pred_fixed
+
+# Salvar
+ggsave("fig/supplemental_material/predicted_observed_all_vars.png",
+       plot = painel_pred_fixed,
+       bg = "white", dpi = 600, width = 10, height = 12)
+
+```
+
+### Model plotting
 
 ##### CBA
 
@@ -4102,7 +4288,7 @@ model_cba_all_temp[model_cba_all_temp$ff_area== "90-100",
 model_cba_all_temp[model_cba_all_temp$type== 1,
                      c("vegetation")]<-"PF"
 model_cba_all_temp[model_cba_all_temp$type== 2,
-                     c("vegetation")]<-"SF_beginning"
+                     c("vegetation")]<-"SF_early"
 model_cba_all_temp[model_cba_all_temp$type== 3,
                      c("vegetation")]<-"SF_intermediate"
 model_cba_all_temp[model_cba_all_temp$type== 4,
@@ -4117,7 +4303,7 @@ model_cba_all_temp
 
 # Reordenar os níveis de 'Tipo'
 model_cba_all_temp <- model_cba_all_temp %>%
-  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_beginning", "SF_intermediate", "SF_advanced")))
+  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_early", "SF_intermediate", "SF_advanced")))
 
 
 model_cba_all_temp %>%
@@ -4127,10 +4313,10 @@ model_cba_all_temp %>%
   geom_line(aes(y = predicted, group = vegetation, color = vegetation), size = 1)+
    scale_color_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
                      name = NULL,  
-                     labels = c("PF", "SF beginning", "SF intermediate", "SF advanced")) +  
+                     labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +  
   scale_fill_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
                     name = NULL,  
-                    labels = c("PF", "SF beginning", "SF intermediate", "SF advanced")) + 
+                    labels = c("PF", "SF early", "SF intermediate", "SF advanced")) + 
   scale_y_continuous(breaks = seq(24, 27, by = 0.5)) +
   ggthemes::theme_few() +
   facet_wrap(~Ano, nrow = 4, ncol = 6) +
@@ -4180,7 +4366,7 @@ model_eba_all_temp[model_eba_all_temp$ff_area== "90-100",
 model_eba_all_temp[model_eba_all_temp$type== 1,
                      c("vegetation")]<-"PF"
 model_eba_all_temp[model_eba_all_temp$type== 2,
-                     c("vegetation")]<-"SF_beginning"
+                     c("vegetation")]<-"SF_early"
 model_eba_all_temp[model_eba_all_temp$type== 3,
                      c("vegetation")]<-"SF_intermediate"
 model_eba_all_temp[model_eba_all_temp$type== 4,
@@ -4194,7 +4380,7 @@ model_eba_all_temp
 
 # Reordenar os níveis de 'Tipo'
 model_eba_all_temp <- model_eba_all_temp %>%
-  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_beginning", "SF_intermediate", "SF_advanced")))
+  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_early", "SF_intermediate", "SF_advanced")))
 
 model_eba_all_temp %>%
   ggplot(aes(x = area*10, y = Temp))+
@@ -4204,10 +4390,10 @@ model_eba_all_temp %>%
   geom_line(aes(y = predicted, group = vegetation, color = vegetation), size = 1)+
     scale_color_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
                      name = NULL,  
-                     labels = c("PF", "SF beginning", "SF intermediate", "SF advanced")) +  
+                     labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +  
   scale_fill_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
                     name = NULL,  
-                    labels = c("PF", "SF beginning", "SF intermediate", "SF advanced")) +
+                    labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +
   scale_y_continuous(breaks = seq(23, 27, by = 0.5)) +
   ggthemes::theme_few() +
   facet_wrap(~Ano, nrow = 4, ncol = 6) +
@@ -4258,7 +4444,7 @@ model_sba_all_temp[model_sba_all_temp$ff_area== "90-100",
 model_sba_all_temp[model_sba_all_temp$type== 1,
                      c("vegetation")]<-"PF"
 model_sba_all_temp[model_sba_all_temp$type== 2,
-                     c("vegetation")]<-"SF_beginning"
+                     c("vegetation")]<-"SF_early"
 model_sba_all_temp[model_sba_all_temp$type== 3,
                      c("vegetation")]<-"SF_intermediate"
 model_sba_all_temp[model_sba_all_temp$type== 4,
@@ -4272,7 +4458,7 @@ model_sba_all_temp
 
 # Reordenar os níveis de 'Tipo'
 model_sba_all_temp <- model_sba_all_temp %>%
-  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_beginning", "SF_intermediate", "SF_advanced")))
+  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_early", "SF_intermediate", "SF_advanced")))
 
 model_sba_all_temp %>%
   ggplot(aes(x = area*10, y = Temp))+
@@ -4282,10 +4468,10 @@ model_sba_all_temp %>%
   geom_line(aes(y = predicted, group = vegetation, color = vegetation), size = 1)+
     scale_color_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
                      name = NULL,  
-                     labels = c("PF", "SF beginning", "SF intermediate", "SF advanced")) +  
+                     labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +  
   scale_fill_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
                     name = NULL,  
-                    labels = c("PF", "SF beginning", "SF intermediate", "SF advanced")) +
+                    labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +
   scale_y_continuous(breaks = seq(23, 27, by = 0.5)) +
   ggthemes::theme_few() +
   facet_wrap(~Ano, nrow = 4, ncol = 6) +
