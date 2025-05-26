@@ -642,7 +642,7 @@ p_ast_prec_w <- all_pf_sf_prec %>%
   scale_y_continuous(breaks = seq(0, max(all_pf_sf_prec$Prec, na.rm = TRUE), by = 250)) +
   labs(
     x = "",
-    y = "Average annual accumulated \n precipitation (mm·yr⁻¹)",
+    y = "Average annual accumulated \n precipitation (mm)",
     #y = expression(atop("Average annual accumulated", paste("precipitation (mm·", yr^{-1}, ")")))
   ) +
   # Adicionando os asteriscos
@@ -1066,7 +1066,7 @@ p_ast_evapo_w <- all_pf_sf_evapo %>%
   #geom_vline(xintercept = c(1,2,3,4,5,6,7,8,9,10), linetype = "dashed", color = "lightgray", size = 0.5) +
   #labels = c("Primary Vegetation           ", "Secondary Vegetation"))+
   labs(x = "",
-       y = "Average annual accumulated \n evapotranspiration (mm·yr⁻¹)",
+       y = "Average annual accumulated \n evapotranspiration (mm)",
        #y = expression(atop("Average annual accumulated", paste("evapotranspiration (mm·", yr^{-1}, ")")))
        ) +
   # Adicionando os asteriscos
@@ -1489,7 +1489,7 @@ p_ast_temp_w <-all_pf_sf_temp %>%
   scale_y_continuous(breaks = 23:27, limits = c(NA, 27), expand = expansion(mult = c(0.01, 0.05)), 
   labels = label_number(width = 6, zero.print = TRUE)) + 
    labs(x = "Fractional cover (%)",
-        y = "Average annual mean \n temperature (°C·yr⁻¹)",
+        y = "Average annual mean \n temperature (°C)",
         #y = expression(atop("Average annual mean", paste("temperature (", degree, "C·yr"^-1, ")")))
         ) +
   # Adicionando os asteriscos
@@ -1865,7 +1865,7 @@ plot_point_prec <- function(region_name, show_y = TRUE, show_legend = FALSE, sho
     scale_color_manual(values = c("midnightblue", "#87CEFA", "#1E90FF", "#0000FF")) +
     scale_y_continuous(limits = c(1800, 2600), breaks = seq(1800, 2600, by = 200)) +
     #labs(y = if (show_y) "Precipitation\nfixed effects (mm·yr⁻¹)" else NULL) +
-    labs(y = if (show_y) expression(bold(atop("Precipitation", "fixed effects (mm·yr"^{-1}*")"))) else NULL) 
+    labs(y = if (show_y) expression(bold(atop("Precipitation", "fixed effects (mm)"))) else NULL) 
   
   return(p)
 }
@@ -1884,10 +1884,13 @@ all_contrasts <- all_contrasts %>%
 # Criar coluna categórica para estimate
 all_contrasts <- all_contrasts %>%
   mutate(
-    estimate_cat = factor(cut((estimate),
-                              breaks = c(-Inf, 100, 200, Inf),
-                              labels = c("<100", "100–200", ">200")),
-                          levels = c("<100", "100–200", ">200"))
+    estimate_cat = factor(
+      cut(estimate,
+          breaks = c(-Inf, 100, 200, Inf),
+          labels = c("<100", "100 to 200", ">200")
+      ),
+      levels = c("<100", "100 to 200", ">200")
+    )
   )
 
 # Heatmap de contrastes
@@ -1896,10 +1899,11 @@ plot_heat_prec <- function(region_name, show_legend = FALSE, show_y_labels = TRU
          aes(x = ff_area, y = tipo_sf_label, fill = estimate_cat)) +
     geom_tile(color = "white", height = 0.7) +
     geom_text(aes(label = sig_label), size = 3, color = "black", family = "serif") +
-    scale_fill_manual(values = c("<100" = "#92C5DE", "100–200" = "#4393C3", ">200" = "#2166AC"),
-                      limits = c("<100", "100–200", ">200"),
+    scale_fill_manual(values = c("<100" = "#92C5DE", "100 to 200" = "#4393C3", ">200" = "#2166AC"),
+                      limits = c("<100", "100 to 200", ">200"),
                       drop = FALSE,
-                      name = expression(bold(atop(Delta~"Prec (PF - SF)", "(mm·yr"^{-1}*")"))))+
+                      name = bquote(bold(atop(Delta~"Prec (PF − SF)", "(mm)")))
+    )+
     ggthemes::theme_few() +
     theme(
       text = element_text(size = 12, face = "bold", family = "serif"),
@@ -2835,7 +2839,7 @@ plot_point_evapo <- function(region_name, show_y = TRUE, show_legend = FALSE, sh
     scale_color_manual(values = c("#02401B", "lightgreen", "green1", "green4")) +
     scale_y_continuous(limits = c(1200, 1700), breaks = seq(1200, 1700, by = 100)) +
     #labs(y = if (show_y) "Evapotranspiration\nfixed effects (mm·yr⁻¹)" else NULL) +
-    labs(y = if (show_y) expression(bold(atop("Evapotranspiration", "fixed effects (mm·yr"^{-1}*")"))) else NULL)
+    labs(y = if (show_y) expression(bold(atop("Evapotranspiration", "fixed effects (mm)"))) else NULL)
   
   return(p)
 }
@@ -2854,10 +2858,13 @@ all_contrasts <- all_contrasts %>%
 # Criar coluna categórica para estimate
 all_contrasts <- all_contrasts %>%
   mutate(
-    estimate_cat = factor(cut((estimate),
-                              breaks = c(-Inf, -30, 0, Inf),
-                              labels = c("<-30", "0 - -30", ">0")),
-                          levels = c("<-30", "0 - -30", ">0"))
+    estimate_cat = factor(
+      cut(estimate,
+          breaks = c(-Inf, -30, 0, Inf),
+          labels = c("<−30", "−30 to 0", ">0")
+      ),
+      levels = c("<−30", "−30 to 0", ">0")
+    )
   )
 
 # Heatmap de contrastes
@@ -2866,10 +2873,12 @@ plot_heat_evapo <- function(region_name, show_legend = FALSE, show_y_labels = TR
          aes(x = ff_area, y = tipo_sf_label, fill = estimate_cat)) +
     geom_tile(color = "white", height = 0.7) +
     geom_text(aes(label = sig_label), size = 3, color = "black", family = "serif") +
-    scale_fill_manual(values = c("<-30" = "#D6604D", "0 - -30" = "#F4A582", ">0" = "#92C5DE"),
-                      limits = c("<-30", "0 - -30", ">0"),
-                      drop = FALSE,
-                      name = expression(bold(atop(Delta~"ET (PF - SF)", "(mm·yr"^{-1}*")"))))+
+    scale_fill_manual(
+      values = c("<−30" = "#D6604D", "−30 to 0" = "#F4A582", ">0" = "#92C5DE"),
+      limits = c("<−30", "−30 to 0", ">0"),
+      drop = FALSE,
+      name = bquote(bold(atop(Delta~"ET (PF − SF)", "(mm)")))
+    )+
     ggthemes::theme_few() +
     theme(
       text = element_text(size = 12, face = "bold", family = "serif"),
@@ -3801,7 +3810,7 @@ plot_point_temp <- function(region_name, show_y = TRUE, show_x = TRUE, show_lege
     scale_y_continuous(limits = c(24, 26.5), breaks = seq(24, 26.5, by = 0.5)) +
     #labs(y = if (show_y) "Temperature\nfixed effects (°C·yr⁻¹)" else NULL) +
     labs(x = "Fractional cover (%)",
-         y = if (show_y) expression(bold(atop("Temperature", "fixed effects (°C·yr"^{-1}*")"))) else NULL) 
+         y = if (show_y) expression(bold(atop("Temperature", "fixed effects (°C)"))) else NULL) 
   
   return(p)
 }
@@ -3820,10 +3829,13 @@ all_contrasts <- all_contrasts %>%
 # Criar coluna categórica para estimate
 all_contrasts <- all_contrasts %>%
   mutate(
-    estimate_cat = factor(cut((estimate),
-                              breaks = c(-Inf, -0.3, 0, Inf),
-                              labels = c("<-0.3", "0 - -0.3", ">0")),
-                          levels = c("<-0.3", "0 - -0.3", ">0"))
+    estimate_cat = factor(
+      cut(estimate,
+          breaks = c(-Inf, -0.3, 0, Inf),
+          labels = c("<−0.3", "−0.3 to 0", ">0")
+      ),
+      levels = c("<−0.3", "−0.3 to 0", ">0")
+    )
   )
 
 # Heatmap de contrastes
@@ -3832,10 +3844,11 @@ plot_heat_temp <- function(region_name, show_legend = FALSE, show_y_labels = TRU
          aes(x = ff_area, y = tipo_sf_label, fill = estimate_cat)) +
     geom_tile(color = "white", height = 0.7) +
     geom_text(aes(label = sig_label), size = 3, color = "black", family = "serif") +
-    scale_fill_manual(values = c("<-0.3" = "#4393C3", "0 - -0.3" = "#92C5DE", ">0" = "#D6604D"),
-                      limits = c("<-0.3", "0 - -0.3", ">0"),
+    scale_fill_manual(values = c("<−0.3" = "#4393C3", "−0.3 to 0" = "#92C5DE", ">0" = "#D6604D"),
+                      limits = c("<−0.3", "−0.3 to 0", ">0"),
                       drop = FALSE,
-                      name = expression(bold(atop(Delta~"LST (PF - SF)", "(°C·yr"^{-1}*")"))))+
+                      name = bquote(bold(atop(Delta~"LST (PF − SF)", "(°C)")))
+)+
     ggthemes::theme_few() +
     theme(
       text = element_text(size = 12, face = "bold", family = "serif"),
