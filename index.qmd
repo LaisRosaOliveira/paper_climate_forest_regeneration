@@ -1,3 +1,3 @@
 # About
 
-<img src="/media/amazonia/hd2/lais/doutorado/fig_localization/Study_area.png" style="width: 500px; height: 300px;float: right; margin-left: 20px;"> 
+<img src="fig/Study_area.png" style="width: 500px; height: 300px;float: right; margin-left: 20px;"> 
