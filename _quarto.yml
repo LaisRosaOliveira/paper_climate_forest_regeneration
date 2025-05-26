@@ -7,8 +7,9 @@ website:
   navbar:
     left:
       - href: index.qmd
-        text: Home
-      - about.qmd
+        text: "<i class='bi bi-book-half'></i> About"
+      - href: about.qmd
+        text: "<i class='bi bi-bar-chart-fill'></i> Data Analysis"
 
 format:
   html:
