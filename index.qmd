@@ -1,7 +1,7 @@
 # About
 
 <div style="text-align: center;">
-  <img src="fig/map_final.png" style="width: 600px; height: 500px;">
+  <img src="fig/Study_area.png" style="width: 600px; height: 500px;">
 </div>
  
 
