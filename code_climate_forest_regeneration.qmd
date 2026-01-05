@@ -242,7 +242,7 @@ gc()
 
 # Boxplots - Fraction area x climate variable
 
-## PRECIPITACAO
+## PRECIPITATION
 
 ### Leitura dos dados
 
@@ -688,7 +688,7 @@ gc()
 
 ```
 
-## EVAPOTRANSPIRACAO
+## EVAPOTRANSPIRATION
 
 ### Agrupamento
 
@@ -1113,7 +1113,7 @@ gc()
 
 ```
 
-## TEMPERTAURA
+## TEMPERTAURE
 
 ### Agrupamento
 

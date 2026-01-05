@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>code_climate_forest_regeneration – Climate forest regeneration</title>
+<title>code_climate_forest_regeneration – Climate and forest regeneration</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -113,7 +113,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
     <a class="navbar-brand" href="./index.html">
-    <span class="navbar-title">Climate forest regeneration</span>
+    <span class="navbar-title">Climate and forest regeneration</span>
     </a>
   </div>
             <div id="quarto-search" class="" title="Search"></div>
@@ -127,7 +127,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span class="menu-text"><i class="bi bi-book-half"></i> About</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./about.qmd"> 
+    <a class="nav-link active" href="./code_climate_forest_regeneration.html" aria-current="page"> 
 <span class="menu-text"><i class="bi bi-bar-chart-fill"></i> Data Analysis</span></a>
   </li>  
 </ul>
@@ -164,7 +164,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </ul></li>
   <li><a href="#boxplots---fraction-area-x-climate-variable" id="toc-boxplots---fraction-area-x-climate-variable" class="nav-link" data-scroll-target="#boxplots---fraction-area-x-climate-variable">Boxplots - Fraction area x climate variable</a>
   <ul class="collapse">
-  <li><a href="#precipitacao" id="toc-precipitacao" class="nav-link" data-scroll-target="#precipitacao">PRECIPITACAO</a>
+  <li><a href="#precipitation" id="toc-precipitation" class="nav-link" data-scroll-target="#precipitation">PRECIPITATION</a>
   <ul class="collapse">
   <li><a href="#leitura-dos-dados" id="toc-leitura-dos-dados" class="nav-link" data-scroll-target="#leitura-dos-dados">Leitura dos dados</a></li>
   <li><a href="#agrupamento" id="toc-agrupamento" class="nav-link" data-scroll-target="#agrupamento">Agrupamento</a></li>
@@ -172,14 +172,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#teste-t-entre-os-tipos-de-cobertura---pf-e-sf" id="toc-teste-t-entre-os-tipos-de-cobertura---pf-e-sf" class="nav-link" data-scroll-target="#teste-t-entre-os-tipos-de-cobertura---pf-e-sf">Teste t entre os tipos de cobertura - PF e SF</a></li>
   <li><a href="#teste-wilcox-entre-os-tipos-de-cobertura---pf-e-sf" id="toc-teste-wilcox-entre-os-tipos-de-cobertura---pf-e-sf" class="nav-link" data-scroll-target="#teste-wilcox-entre-os-tipos-de-cobertura---pf-e-sf">Teste Wilcox entre os tipos de cobertura - PF e SF</a></li>
   </ul></li>
-  <li><a href="#evapotranspiracao" id="toc-evapotranspiracao" class="nav-link" data-scroll-target="#evapotranspiracao">EVAPOTRANSPIRACAO</a>
+  <li><a href="#evapotranspiration" id="toc-evapotranspiration" class="nav-link" data-scroll-target="#evapotranspiration">EVAPOTRANSPIRATION</a>
   <ul class="collapse">
   <li><a href="#agrupamento-1" id="toc-agrupamento-1" class="nav-link" data-scroll-target="#agrupamento-1">Agrupamento</a></li>
   <li><a href="#testes-normalidade-homocedasticidade-e-independência-1" id="toc-testes-normalidade-homocedasticidade-e-independência-1" class="nav-link" data-scroll-target="#testes-normalidade-homocedasticidade-e-independência-1">Testes normalidade, homocedasticidade e independência</a></li>
   <li><a href="#teste-t-entre-os-tipos-de-cobertura---pf-e-sf-1" id="toc-teste-t-entre-os-tipos-de-cobertura---pf-e-sf-1" class="nav-link" data-scroll-target="#teste-t-entre-os-tipos-de-cobertura---pf-e-sf-1">Teste t entre os tipos de cobertura - PF e SF</a></li>
   <li><a href="#teste-wilcox-entre-os-tipos-de-cobertura---pf-e-sf-1" id="toc-teste-wilcox-entre-os-tipos-de-cobertura---pf-e-sf-1" class="nav-link" data-scroll-target="#teste-wilcox-entre-os-tipos-de-cobertura---pf-e-sf-1">Teste Wilcox entre os tipos de cobertura - PF e SF</a></li>
   </ul></li>
-  <li><a href="#tempertaura" id="toc-tempertaura" class="nav-link" data-scroll-target="#tempertaura">TEMPERTAURA</a>
+  <li><a href="#tempertaure" id="toc-tempertaure" class="nav-link" data-scroll-target="#tempertaure">TEMPERTAURE</a>
   <ul class="collapse">
   <li><a href="#agrupamento-2" id="toc-agrupamento-2" class="nav-link" data-scroll-target="#agrupamento-2">Agrupamento</a></li>
   <li><a href="#testes-normalidade-homocedasticidade-e-independência-2" id="toc-testes-normalidade-homocedasticidade-e-independência-2" class="nav-link" data-scroll-target="#testes-normalidade-homocedasticidade-e-independência-2">Testes normalidade, homocedasticidade e independência</a></li>
@@ -191,7 +191,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#modeling" id="toc-modeling" class="nav-link" data-scroll-target="#modeling">Modeling</a></li>
   <li><a href="#model" id="toc-model" class="nav-link" data-scroll-target="#model">Model</a>
   <ul class="collapse">
-  <li><a href="#precipitation" id="toc-precipitation" class="nav-link" data-scroll-target="#precipitation">PRECIPITATION</a>
+  <li><a href="#precipitation-1" id="toc-precipitation-1" class="nav-link" data-scroll-target="#precipitation-1">PRECIPITATION</a>
   <ul class="collapse">
   <li><a href="#model-choice" id="toc-model-choice" class="nav-link" data-scroll-target="#model-choice">Model choice</a></li>
   <li><a href="#fixed-effect" id="toc-fixed-effect" class="nav-link" data-scroll-target="#fixed-effect">Fixed effect</a></li>
@@ -200,7 +200,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#predicted" id="toc-predicted" class="nav-link" data-scroll-target="#predicted">Predicted</a></li>
   <li><a href="#model-plotting" id="toc-model-plotting" class="nav-link" data-scroll-target="#model-plotting">Model plotting</a></li>
   </ul></li>
-  <li><a href="#evapotranspiration" id="toc-evapotranspiration" class="nav-link" data-scroll-target="#evapotranspiration">EVAPOTRANSPIRATION</a>
+  <li><a href="#evapotranspiration-1" id="toc-evapotranspiration-1" class="nav-link" data-scroll-target="#evapotranspiration-1">EVAPOTRANSPIRATION</a>
   <ul class="collapse">
   <li><a href="#model-choice-1" id="toc-model-choice-1" class="nav-link" data-scroll-target="#model-choice-1">Model choice</a></li>
   <li><a href="#fixed-effect-1" id="toc-fixed-effect-1" class="nav-link" data-scroll-target="#fixed-effect-1">Fixed effect</a></li>
@@ -450,8 +450,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="boxplots---fraction-area-x-climate-variable" class="level1">
 <h1>Boxplots - Fraction area x climate variable</h1>
-<section id="precipitacao" class="level2">
-<h2 class="anchored" data-anchor-id="precipitacao">PRECIPITACAO</h2>
+<section id="precipitation" class="level2">
+<h2 class="anchored" data-anchor-id="precipitation">PRECIPITATION</h2>
 <section id="leitura-dos-dados" class="level3">
 <h3 class="anchored" data-anchor-id="leitura-dos-dados">Leitura dos dados</h3>
 <div class="cell">
@@ -719,8 +719,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb16-50"><a href="#cb16-50" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 1551278 82.9    2951062 157.7  2161702 115.5
-Vcells 2790801 21.3    8388608  64.0  3892748  29.7</code></pre>
+Ncells 1551257 82.9    2951001 157.7  2161700 115.5
+Vcells 2790809 21.3    8388608  64.0  3892756  29.7</code></pre>
 </div>
 </div>
 </section>
@@ -789,8 +789,8 @@ Vcells 2790801 21.3    8388608  64.0  3892748  29.7</code></pre>
 <span id="cb18-60"><a href="#cb18-60" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 1554003 83.0    2951062 157.7  2951062 157.7
-Vcells 2798422 21.4    8388608  64.0  3982799  30.4</code></pre>
+Ncells 1553982 83.0    2951001 157.7  2951001 157.7
+Vcells 2798430 21.4    8388608  64.0  3982804  30.4</code></pre>
 </div>
 </div>
 </section>
@@ -858,8 +858,8 @@ Vcells 2798422 21.4    8388608  64.0  3982799  30.4</code></pre>
 <span id="cb20-59"><a href="#cb20-59" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 1558051 83.3    2951062 157.7  2951062 157.7
-Vcells 2808637 21.5    8388608  64.0  4124248  31.5</code></pre>
+Ncells 1558030 83.3    2951001 157.7  2951001 157.7
+Vcells 2808645 21.5    8388608  64.0  4124224  31.5</code></pre>
 </div>
 </div>
 <section id="plot-com-significance" class="level4">
@@ -951,15 +951,15 @@ Vcells 2808637 21.5    8388608  64.0  4124248  31.5</code></pre>
 <span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used  (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 1912761 102.2    2951062 157.7  2951062 157.7
-Vcells 3478710  26.6    8388608  64.0  5679660  43.4</code></pre>
+Ncells 1912840 102.2    2951001 157.7  2951001 157.7
+Vcells 3478718  26.6    8388608  64.0  5679660  43.4</code></pre>
 </div>
 </div>
 </section>
 </section>
 </section>
-<section id="evapotranspiracao" class="level2">
-<h2 class="anchored" data-anchor-id="evapotranspiracao">EVAPOTRANSPIRACAO</h2>
+<section id="evapotranspiration" class="level2">
+<h2 class="anchored" data-anchor-id="evapotranspiration">EVAPOTRANSPIRATION</h2>
 <section id="agrupamento-1" class="level3">
 <h3 class="anchored" data-anchor-id="agrupamento-1">Agrupamento</h3>
 <div class="cell">
@@ -1204,8 +1204,8 @@ Vcells 3478710  26.6    8388608  64.0  5679660  43.4</code></pre>
 <span id="cb30-50"><a href="#cb30-50" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 1865819 99.7    2951062 157.7  2951062 157.7
-Vcells 3380056 25.8    8388608  64.0  5679660  43.4</code></pre>
+Ncells 1866075 99.7    2951001 157.7  2951001 157.7
+Vcells 3380531 25.8    8388608  64.0  5679660  43.4</code></pre>
 </div>
 </div>
 </section>
@@ -1274,8 +1274,8 @@ Vcells 3380056 25.8    8388608  64.0  5679660  43.4</code></pre>
 <span id="cb32-60"><a href="#cb32-60" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 1865552 99.7    2951062 157.7  2951062 157.7
-Vcells 3380192 25.8    8388608  64.0  5679660  43.4</code></pre>
+Ncells 1865808 99.7    2951001 157.7  2951001 157.7
+Vcells 3380667 25.8    8388608  64.0  5679660  43.4</code></pre>
 </div>
 </div>
 </section>
@@ -1343,8 +1343,8 @@ Vcells 3380192 25.8    8388608  64.0  5679660  43.4</code></pre>
 <span id="cb34-59"><a href="#cb34-59" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 1865560 99.7    2951062 157.7  2951062 157.7
-Vcells 3381923 25.9    8388608  64.0  5679660  43.4</code></pre>
+Ncells 1865816 99.7    2951001 157.7  2951001 157.7
+Vcells 3382398 25.9    8388608  64.0  5679660  43.4</code></pre>
 </div>
 </div>
 <section id="plot-com-significance-1" class="level4">
@@ -1441,15 +1441,15 @@ Vcells 3381923 25.9    8388608  64.0  5679660  43.4</code></pre>
 <span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used  (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 1930846 103.2    2951062 157.7  2951062 157.7
-Vcells 3530836  27.0    8388608  64.0  5679660  43.4</code></pre>
+Ncells 1931102 103.2    2951001 157.7  2951001 157.7
+Vcells 3531311  27.0    8388608  64.0  5679660  43.4</code></pre>
 </div>
 </div>
 </section>
 </section>
 </section>
-<section id="tempertaura" class="level2">
-<h2 class="anchored" data-anchor-id="tempertaura">TEMPERTAURA</h2>
+<section id="tempertaure" class="level2">
+<h2 class="anchored" data-anchor-id="tempertaure">TEMPERTAURE</h2>
 <section id="agrupamento-2" class="level3">
 <h3 class="anchored" data-anchor-id="agrupamento-2">Agrupamento</h3>
 <div class="cell">
@@ -1694,8 +1694,8 @@ Vcells 3530836  27.0    8388608  64.0  5679660  43.4</code></pre>
 <span id="cb44-50"><a href="#cb44-50" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used  (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 1884618 100.7    2951062 157.7  2951062 157.7
-Vcells 3435841  26.3    8388608  64.0  5679660  43.4</code></pre>
+Ncells 1884874 100.7    2951001 157.7  2951001 157.7
+Vcells 3436316  26.3    8388608  64.0  5679660  43.4</code></pre>
 </div>
 </div>
 </section>
@@ -1764,8 +1764,8 @@ Vcells 3435841  26.3    8388608  64.0  5679660  43.4</code></pre>
 <span id="cb46-60"><a href="#cb46-60" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used  (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 1884351 100.7    2951062 157.7  2951062 157.7
-Vcells 3435977  26.3    8388608  64.0  5679660  43.4</code></pre>
+Ncells 1884607 100.7    2951001 157.7  2951001 157.7
+Vcells 3436452  26.3    8388608  64.0  5679660  43.4</code></pre>
 </div>
 </div>
 </section>
@@ -1833,8 +1833,8 @@ Vcells 3435977  26.3    8388608  64.0  5679660  43.4</code></pre>
 <span id="cb48-59"><a href="#cb48-59" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used  (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 1884359 100.7    2951062 157.7  2951062 157.7
-Vcells 3437705  26.3    8388608  64.0  5679660  43.4</code></pre>
+Ncells 1884615 100.7    2951001 157.7  2951001 157.7
+Vcells 3438180  26.3    8388608  64.0  5679660  43.4</code></pre>
 </div>
 </div>
 <section id="plot-com-significance-2" class="level4">
@@ -1930,8 +1930,8 @@ Vcells 3437705  26.3    8388608  64.0  5679660  43.4</code></pre>
 <span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used  (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 1949562 104.2    2951062 157.7  2951062 157.7
-Vcells 3586698  27.4    8388608  64.0  5679660  43.4</code></pre>
+Ncells 1949818 104.2    2951001 157.7  2951001 157.7
+Vcells 3587173  27.4    8388608  64.0  5679660  43.4</code></pre>
 </div>
 </div>
 </section>
@@ -2009,8 +2009,8 @@ Continue? [y/n] </code></pre>
 </section>
 <section id="model" class="level1">
 <h1>Model</h1>
-<section id="precipitation" class="level2">
-<h2 class="anchored" data-anchor-id="precipitation">PRECIPITATION</h2>
+<section id="precipitation-1" class="level2">
+<h2 class="anchored" data-anchor-id="precipitation-1">PRECIPITATION</h2>
 <section id="model-choice" class="level3">
 <h3 class="anchored" data-anchor-id="model-choice">Model choice</h3>
 <div class="cell">
@@ -3195,8 +3195,8 @@ Lower triangle: Comparisons (estimate)   earlier vs. later</code></pre>
 <span id="cb91-6"><a href="#cb91-6" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used  (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 4372152 233.5    7436654 397.2  7436654 397.2
-Vcells 8113512  62.0   14786712 112.9 12255579  93.6</code></pre>
+Ncells 4372233 233.6    7437017 397.2  7437017 397.2
+Vcells 8113515  62.0   14786712 112.9 12255593  93.6</code></pre>
 </div>
 </div>
 <section id="todos-os-constraste-entre-frações-de-área" class="level4">
@@ -3337,8 +3337,8 @@ Vcells 8113512  62.0   14786712 112.9 12255579  93.6</code></pre>
 <span id="cb96-6"><a href="#cb96-6" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used  (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 4391159 234.6    7436654 397.2  7436654 397.2
-Vcells 8170154  62.4   14786712 112.9 14786712 112.9</code></pre>
+Ncells 4391243 234.6    7437017 397.2  7437017 397.2
+Vcells 8170162  62.4   14786712 112.9 14786712 112.9</code></pre>
 </div>
 </div>
 </section>
@@ -3766,8 +3766,8 @@ Vcells 8170154  62.4   14786712 112.9 14786712 112.9</code></pre>
 </section>
 </section>
 </section>
-<section id="evapotranspiration" class="level2">
-<h2 class="anchored" data-anchor-id="evapotranspiration">EVAPOTRANSPIRATION</h2>
+<section id="evapotranspiration-1" class="level2">
+<h2 class="anchored" data-anchor-id="evapotranspiration-1">EVAPOTRANSPIRATION</h2>
 <section id="model-choice-1" class="level3">
 <h3 class="anchored" data-anchor-id="model-choice-1">Model choice</h3>
 <div class="cell">
@@ -4825,8 +4825,8 @@ Lower triangle: Comparisons (estimate)   earlier vs. later</code></pre>
 <span id="cb145-6"><a href="#cb145-6" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used  (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 4764681 254.5    7436654 397.2  7436654 397.2
-Vcells 9080845  69.3   17824054 136.0 14786712 112.9</code></pre>
+Ncells 4764766 254.5    7437017 397.2  7437017 397.2
+Vcells 9080848  69.3   17824054 136.0 14786712 112.9</code></pre>
 </div>
 </div>
 <section id="todos-os-constraste-entre-frações-de-área-1" class="level4">
@@ -4965,8 +4965,8 @@ Vcells 9080845  69.3   17824054 136.0 14786712 112.9</code></pre>
 <span id="cb150-6"><a href="#cb150-6" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used  (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 4746272 253.5    7436654 397.2  7436654 397.2
-Vcells 9052265  69.1   17824054 136.0 17823578 136.0</code></pre>
+Ncells 4746357 253.5    7437017 397.2  7437017 397.2
+Vcells 9052268  69.1   17824054 136.0 17823378 136.0</code></pre>
 </div>
 </div>
 </section>
@@ -6460,8 +6460,8 @@ Lower triangle: Comparisons (estimate)   earlier vs. later</code></pre>
 <span id="cb199-6"><a href="#cb199-6" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used  (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 5095238 272.2    7436654 397.2  7436654 397.2
-Vcells 9912021  75.7   17824054 136.0 17823578 136.0</code></pre>
+Ncells 5095326 272.2    7437017 397.2  7437017 397.2
+Vcells 9912029  75.7   17824054 136.0 17823378 136.0</code></pre>
 </div>
 </div>
 <section id="todos-os-constraste-entre-frações-de-área-2" class="level4">
@@ -6600,8 +6600,8 @@ Vcells 9912021  75.7   17824054 136.0 17823578 136.0</code></pre>
 <span id="cb204-6"><a href="#cb204-6" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used  (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 5075406 271.1    7436654 397.2  7436654 397.2
-Vcells 9880002  75.4   17824054 136.0 17823578 136.0</code></pre>
+Ncells 5075494 271.1    7437017 397.2  7437017 397.2
+Vcells 9880010  75.4   17824054 136.0 17823437 136.0</code></pre>
 </div>
 </div>
 </section>
@@ -6754,8 +6754,8 @@ Vcells 9880002  75.4   17824054 136.0 17823578 136.0</code></pre>
 <span id="cb211-3"><a href="#cb211-3" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used  (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 5134580 274.3    7436654 397.2  7436654 397.2
-Vcells 9965529  76.1   17824054 136.0 17823578 136.0</code></pre>
+Ncells 5134668 274.3    7437017 397.2  7437017 397.2
+Vcells 9965537  76.1   17824054 136.0 17823437 136.0</code></pre>
 </div>
 </div>
 </section>

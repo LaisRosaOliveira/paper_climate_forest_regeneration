@@ -3,12 +3,12 @@ project:
   output-dir: docs
 
 website:
-  title: "Climate forest regeneration"
+  title: "Climate and forest regeneration"
   navbar:
     left:
       - href: index.qmd
         text: "<i class='bi bi-book-half'></i> About"
-      - href: about.qmd
+      - href: code_climate_forest_regeneration.qmd
         text: "<i class='bi bi-bar-chart-fill'></i> Data Analysis"
     right:
       - href: https://github.com/LaisRosaOliveira/paper_climate_forest_regeneration
@@ -18,7 +18,7 @@ website:
 
 format:
   html:
-    theme: cosmo
+    theme: flatly
     css: styles.css
     toc: true
 
