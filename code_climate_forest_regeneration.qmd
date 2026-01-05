@@ -1,0 +1,4958 @@
+---
+title: ""
+message: false
+warning: false
+---
+
+# Packages
+
+```{r}
+
+library(ggplot2)
+library(RColorBrewer)
+library(writexl)
+library(extrafont)
+library(readxl)
+library(tidyverse)
+library(dplyr)
+library(scales)
+library(grid)
+library(gridExtra)
+library(gtable)
+library(ggpubr)
+library(car)
+library(dunn.test)
+library(data.table)
+library(rstatix)
+library(tidyr)
+library(purrr)
+library(patchwork)
+library(reshape2)
+library(ggthemes)
+library(sf)
+library(scales)
+
+```
+
+# Leitura e pré-processamento
+
+```{r,eval = FALSE, echo = TRUE}
+# Planilha com todos os dados
+all_PF_SF <- fread("/media/amazonia/hd2/lais/GitHub/paper_climate_forest_regeneration/plans_results/plan_final/all_vars_2001-2021_with_age.csv")
+
+# Colunas de all_PF_SF
+# Lon   Lat   Region   Ano    Tipo    Prec    Evapo    Temp   frac_area   Idade_SF
+gc()
+
+```
+
+```{r,eval = FALSE, echo = TRUE}
+
+# Contagem de dados por região ANTES da filtragem
+
+## CBA
+n_obs_cba_a <- all_PF_SF %>% 
+  filter(Region == "CBA")
+
+## EBA
+n_obs_eba_a <- all_PF_SF %>% 
+  filter(Region == "EBA")
+
+## SBA
+n_obs_sba_a <- all_PF_SF %>% 
+  filter(Region == "SBA")
+
+```
+
+```{r,eval = FALSE, echo = TRUE}
+
+# Colocando em uma única linha as frações de área de todos os usos de uma mesma lat, lon
+all_lulc <- dcast(
+  all_PF_SF, 
+  Lon + Lat + Prec + Evapo + Temp + Region + Ano + Idade_SF ~ Tipo, 
+  value.var = "frac_area", 
+  fun.aggregate = sum, 
+  fill = 0
+)
+
+# -- Para cada pixel foi criado uma coluna de fração de área para cada tipo de uso/cobertura
+# -- Dessa forma, sabemos quanto de cada uso/cobertura tem dentro de cada pixel
+
+# Renomear colunas para manter o padrão desejado
+setnames(all_lulc, old = c("PF", "SF", "Agriculture", "Pasture"), 
+                  new = c("frac_area_PF", "frac_area_SF", "frac_area_Agriculture", "frac_area_Pasture"))
+
+# Colunas de all_lulc
+# Lon    Lat    Prec    Evapo    Temp    Region   Ano   Idade_SF   frac_area_Agriculture   frac_area_Pasture   frac_area_PF   frac_area_SF
+
+rm(all_PF_SF)
+
+```
+
+## Filtragem - Pixels "não-puros"
+
+```{r,eval = FALSE, echo = TRUE}
+
+# Condicionais
+all_lulc_fil_50 <- all_lulc %>%
+  filter(
+    # PF ausente e SF predominante
+    (frac_area_SF > 0.5 & frac_area_PF == 0) |
+    
+    # SF baixo sem outros usos dominantes
+    (frac_area_SF > 0 & frac_area_SF <= 0.5 & 
+     (frac_area_PF + frac_area_Agriculture + frac_area_Pasture) < frac_area_SF) |
+    
+    # SF ausente e PF predominante
+    (frac_area_SF == 0 & frac_area_PF > 0.5) |
+    
+    # PF baixo sem outros usos dominantes
+    (frac_area_PF > 0 & frac_area_PF <= 0.5 & 
+     (frac_area_Agriculture + frac_area_Pasture + frac_area_SF) < frac_area_PF) |
+    
+    # Para avaliar o histórico é importante ter os casos abaixo  
+    # Florestas ausentes e AG presente
+    (frac_area_SF == 0 & frac_area_PF == 0 & frac_area_Agriculture >= 0.1) |
+    
+    # Florestas ausentes e Pasture presente
+    (frac_area_SF == 0 & frac_area_PF == 0 & frac_area_Pasture >= 0.1)
+    )
+
+# Exportar planilha filtrada
+fwrite(all_lulc_fil_50, file = "/media/amazonia/hd2/lais/GitHub/paper_climate_forest_regeneration/data_group/plan_fil_all_lulc.csv")
+
+```
+
+```{r,eval = FALSE, echo = TRUE}
+
+# Transformar colunas de fração de volta para formato original
+all_lulc_long_50 <- melt(all_lulc_fil_50, 
+                         id.vars = c("Lon", "Lat", "Prec", "Evapo", "Temp", "Region", "Ano", "Idade_SF"),
+                         variable.name = "Tipo", 
+                         value.name = "frac_area")
+
+# Converter para data.table antes de usar :=
+setDT(all_lulc_long_50)
+
+# Ajustar nomes de Tipo para corresponder ao original
+all_lulc_long_50[, Tipo := gsub("frac_area_", "", Tipo)]
+
+# Remover pixels onde a fração de área é 1% (~1 ha)
+all_lulc_50_final <- all_lulc_long_50[frac_area > 0.01]
+
+## Exportar
+fwrite(all_lulc_50_final, file = "/media/amazonia/hd2/lais/GitHub/paper_climate_forest_regeneration/data_group/plan_all_lulc_final.csv")
+
+rm(all_lulc)
+rm(all_lulc_fil_50)
+rm(all_lulc_long_50)
+#rm(all_lulc_50_final)
+
+gc()
+
+```
+
+```{r,eval = FALSE, echo = TRUE}
+
+# Contagem de dados por região DEPOIS da filtragem
+
+## CBA
+n_obs_cba_d <- all_lulc_50_final %>% 
+  filter(Region == "CBA")
+
+## EBA
+n_obs_eba_d <- all_lulc_50_final %>% 
+  filter(Region == "EBA")
+
+## SBA
+n_obs_sba_d <- all_lulc_50_final %>% 
+  filter(Region == "SBA")
+
+```
+
+## Plot - Observações
+
+```{r,eval = FALSE, echo = TRUE}
+
+## Obter contagens
+before <- c(
+  CBA = nrow(n_obs_cba_a),
+  EBA = nrow(n_obs_eba_a),
+  SBA = nrow(n_obs_sba_a)
+)
+
+after <- c(
+  CBA = nrow(n_obs_cba_d),
+  EBA = nrow(n_obs_eba_d),
+  SBA = nrow(n_obs_sba_d)
+)
+
+reducoes_percentuais <- round((before - after) / before * 100, 1)
+regioes <- c("CBA", "EBA", "SBA")
+
+# Data frame em formato longo com valores intercalados
+df_plot <- data.frame(
+  Regiao = rep(regioes, each = 2),
+  Status = factor(rep(c("Before", "After"), times = 3), levels = c("Before", "After")),
+  Observacoes = as.vector(rbind(before, after))
+)
+
+# Posição dos rótulos acima de cada barra correspondente
+df_text <- df_plot %>%
+  group_by(Regiao) %>%
+  summarize(y_pos = max(Observacoes) * 1.05) %>%
+  mutate(
+    x_pos = Regiao,
+    Reducao = paste0("-", reducoes_percentuais, "%")
+  )
+
+# Gráfico
+# Esse gráfio já inclui observações de Agriulture e Pasture
+# O gráfico com o número de observações sem esses usos foi gerado antes
+ggplot(df_plot, aes(x = Regiao, y = Observacoes, fill = Status)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.7), width = 0.6) +
+  geom_text(data = df_text, aes(x = x_pos, y = y_pos, label = Reducao),
+            inherit.aes = FALSE, size = 3, fontface = "bold", family = "serif") +
+  scale_fill_manual(values = c("Before" = "skyblue", "After" = "lightgreen")) +
+  labs(
+    title = "",
+    y = "Number of observations (pixels)", x = "", fill = ""
+  ) +
+  ggthemes::theme_few()+
+  theme(legend.position = c(0.15, 0.90),
+    legend.background = element_rect(fill = "transparent"),
+    text = element_text(size = 12, face = "bold", family = "serif"),
+    axis.text = element_text(size = 10, face = "plain", family = "serif", color = "black"),
+    axis.title.y = element_text(size = 10))
+
+# Salvando a figura
+#ggsave("fig/observatios_before_after.png", dpi = 600)
+
+```
+
+```{r,eval = FALSE, echo = TRUE}
+
+rm(n_obs_cba_a, n_obs_eba_a, n_obs_sba_a)
+rm(n_obs_cba_d, n_obs_eba_d, n_obs_sba_d)
+rm(df_plot, df_text)
+
+gc()
+
+```
+
+# Boxplots - Fraction area x climate variable
+
+## PRECIPITACAO
+
+### Leitura dos dados
+
+```{r,eval = FALSE, echo = TRUE}
+
+# Lendo a planilha
+all_lulc_50_final <- fread("/media/amazonia/hd2/lais/GitHub/paper_climate_forest_regeneration/data_group/plan_all_lulc_final.csv")
+
+all_lulc_50_fil <- all_lulc_50_final %>% 
+   filter(Tipo %in% c("SF", "PF"))
+
+#rm(all_lulc_50_final)
+
+## CBA
+n_obs_cba_d <- all_lulc_50_fil %>% 
+  filter(Region == "CBA")
+
+## EBA
+n_obs_eba_d <- all_lulc_50_fil %>% 
+  filter(Region == "EBA")
+
+## SBA
+n_obs_sba_d <- all_lulc_50_fil %>% 
+  filter(Region == "SBA")
+
+
+gc()
+
+```
+
+### Agrupamento
+
+```{r,eval = FALSE, echo = TRUE}
+
+# Criar intervalos de fração de área 
+all_lulc_prec <- all_lulc_50_fil %>% 
+  summarise(
+    Prec = Prec,
+    Frac = frac_area,
+    Tipo = Tipo,
+    Ano = Ano,
+    region = Region,
+    Idade = Idade_SF
+  ) %>%
+  mutate(
+    ff_area = case_when(Frac >= 0.01 & Frac <= 0.1 ~ "1-10",
+                        Frac > 0.1 & Frac <= 0.2 ~ "10-20",
+                        Frac > 0.2 & Frac <= 0.3 ~ "20-30",
+                        Frac > 0.3 & Frac <= 0.4 ~ "30-40",
+                        Frac > 0.4 & Frac <= 0.5 ~ "40-50",
+                        Frac > 0.5 & Frac <= 0.6 ~ "50-60",
+                        Frac > 0.6 & Frac <= 0.7 ~ "60-70",
+                        Frac > 0.7 & Frac <= 0.8 ~ "70-80",
+                        Frac > 0.8 & Frac <= 0.9 ~ "80-90",
+                        Frac > 0.9 & Frac <= 1.0 ~ "90-100")) %>%
+  mutate(
+    idade = case_when(Idade >= 0 & Idade <= 10 ~ "<= 10",
+                      Idade > 10 & Idade <= 20 ~ "10-20",
+                      Idade > 20 ~ "> 20")) %>%
+  # Calcular a precipitação média para cada agrupamento
+  group_by(Ano, Tipo, region, ff_area, idade) %>% 
+  summarise(
+    Prec = mean(Prec),
+    n_obs = n(),
+    .groups = "drop"
+  )
+
+
+# Criar o novo dataframe com as categorias desejadas
+all_lulc_prec_stages <- all_lulc_prec %>%
+  mutate(Tipo = case_when(Tipo == "PF" ~ "PF",
+                          Tipo == "SF" & idade == "<= 10" ~ "SF_early",
+                          Tipo == "SF" & idade == "10-20" ~ "SF_intermediate",
+                          Tipo == "SF" & idade == "> 20" ~ "SF_advanced",
+                          TRUE ~ NA_character_)) %>% 
+  filter(!is.na(Tipo))  # Remove linhas que não se encaixam nas categorias definidas
+
+
+all_lulc_prec_final <- all_lulc_prec_stages %>% 
+  mutate(type = case_when(Tipo == "PF" ~ 1,
+                          Tipo == "SF_early" ~ 2, 
+                          Tipo == "SF_intermediate" ~ 3,
+                          Tipo == "SF_advanced" ~ 4))
+
+# Verificar o resultado
+#head(all_lulc_prec_final)
+
+# Calcular valores máximos e mínimos
+max_min_prec = all_lulc_prec_final %>%
+  group_by(Tipo, region, ff_area, idade) %>%
+  summarise(
+    max_prec = max(Prec),
+    median_prec = median(Prec),
+    min_prec = min(Prec)
+  )
+
+# Exportar dados min e max
+write_xlsx(max_min_prec, "data_group/plan_max_and_min_group_prec.xlsx")
+
+# Exportar dados agrupados
+write_xlsx(all_lulc_prec_final, "data_group/plan_data_group_prec.xlsx")
+
+rm(all_lulc_prec, all_lulc_prec_stages)
+rm(max_min_prec)
+
+gc()
+
+```
+
+### Testes normalidade, homocedasticidade e independência
+
+```{r}
+
+all_pf_sf_prec = read_xlsx("data_group/plan_data_group_prec.xlsx")
+
+# ---- NORMALIDADE ----
+
+# Realizar o teste de normalidade Shapiro-Wilk 
+shapiro_test_results_prec <- all_pf_sf_prec %>%
+  group_by(Tipo, region, ff_area) %>%
+  summarise(
+    p_value = shapiro.test(Prec)$p.value
+  ) %>%
+  ungroup()
+
+# Visualizar os resultados do teste Shapiro-Wilk
+print(shapiro_test_results_prec)
+
+# Exportar os resultados do teste de normalidade
+write_xlsx(shapiro_test_results_prec, "data_group/shapiro_test_prec_results.xlsx")
+
+
+# ---- HOMOCEDASTICIDADE ----
+
+# Garantindo que 'Tipo' seja tratado como fator
+all_pf_sf_prec$Tipo <- as.factor(all_pf_sf_prec$Tipo)
+
+# Lista para armazenar os resultados
+results_list_prec <- list()
+
+# Loop por cada combinação de 'region' e 'ff_area'
+for (region in unique(all_pf_sf_prec$region)) {
+  for (ff_area in unique(all_pf_sf_prec$ff_area)) {
+    
+    # Filtrar os dados para a combinação atual
+    data_subset <- all_pf_sf_prec %>%
+      filter(region == !!region, ff_area == !!ff_area)
+    
+    # Verificar se há dados suficientes para realizar o teste (precisa de pelo menos 2 tipos)
+    if (nrow(data_subset) > 1 && length(unique(data_subset$Tipo)) > 1) {
+      try({
+        # Realizar o teste de homocedasticidade Levene
+        levene_test_prec <- leveneTest(Prec ~ Tipo, data = data_subset)
+        p_value <- levene_test_prec$`Pr(>F)`[1]  # Extraindo o valor p
+      }, silent = TRUE)
+    } else {
+      p_value <- NA  # Insere NA se não houver dados suficientes
+    }
+    
+    # Adicionar o resultado ao vetor de resultados apenas se o p_value não for nulo
+    if (!is.null(p_value)) {
+      results_list_prec[[length(results_list_prec) + 1]] <- data.frame(region = region, 
+                                                             ff_area = ff_area, 
+                                                             p_value = p_value)
+    }
+  }
+}
+
+# Combinar todos os resultados em um DataFrame
+levene_test_results_prec <- do.call(rbind, results_list_prec)
+
+# Exibir os resultados
+print(levene_test_results_prec)
+
+# Exportar os resultados para um arquivo Excel
+write_xlsx(levene_test_results_prec, "data_group/levene_test_prec_results.xlsx")
+
+
+# ---- INDEPENDÊNCIA ----
+
+
+# Lista para armazenar os resultados
+kendall_results_list_prec <- list()
+
+# Loop por cada combinação de 'region' e 'ff_area'
+for (region in unique(all_pf_sf_prec$region)) {
+  for (ff_area in unique(all_pf_sf_prec$ff_area)) {
+    
+    # Filtrar os dados para a combinação atual
+    data_subset <- all_pf_sf_prec %>%
+      filter(region == !!region, ff_area == !!ff_area)
+    
+    # Verificar se há dados suficientes para realizar o teste (precisa de pelo menos 2 tipos)
+    if (nrow(data_subset) > 1 && length(unique(data_subset$Tipo)) > 1) {
+      try({
+        # Realizar o teste de correlação de Kendall entre 'Prec' e 'Tipo'
+        cor_test <- cor.test(as.numeric(data_subset$Prec), as.numeric(data_subset$Tipo), method = "kendall")
+        p_value <- cor_test$p.value  # Extraindo o valor p
+        cor_value <- cor_test$estimate  # Extraindo o valor da correlação
+      }, silent = TRUE)
+    } else {
+      p_value <- NA  # Insere NA se não houver dados suficientes
+      cor_value <- NA
+    }
+    
+    # Adicionar o resultado ao vetor de resultados apenas se o p_value não for nulo
+    if (!is.null(p_value)) {
+      kendall_results_list_prec[[length(kendall_results_list_prec) + 1]] <- data.frame(
+        region = region, 
+        ff_area = ff_area, 
+        cor_value = cor_value,
+        p_value = p_value
+      )
+    }
+  }
+}
+
+# Combinar todos os resultados em um DataFrame
+kendall_test_results_prec <- do.call(rbind, kendall_results_list_prec)
+
+# Exportar os resultados para um arquivo Excel
+write_xlsx(kendall_test_results_prec, "data_group/kendall_test_prec_results.xlsx")
+
+gc()
+
+```
+
+### Teste t entre os tipos de cobertura - PF e SF
+
+```{r}
+
+# -------------------------------------------------------------------------------
+# OS PRESSUPOSTOS NÃO FORAM ATENDIDOS - PULAR PARA RODAR O TESTE NÃO PARAMÉTRICO 
+# -------------------------------------------------------------------------------
+
+# Lista dos intervalos de área
+area_ranges <- c("1-10", "10-20", "20-30", "30-40", "40-50", 
+                 "50-60", "60-70", "70-80", "80-90", "90-100")
+
+# Lista das regiões
+regions <- c("CBA", "EBA", "SBA")
+
+# Criando um DataFrame para armazenar os resultados
+significance_results_t_prec <- data.frame(Intervalo = area_ranges)
+
+# Loop por cada região
+for (region in regions) {
+  
+  p_values_pf_sf_early <- c()
+  p_values_pf_sf_intermediate <- c()
+  p_values_pf_sf_advanced <- c()
+  
+  # Loop por cada intervalo de área
+  for (range in area_ranges) {
+    
+    # Filtrando os dados
+    pv_data <- all_pf_sf_prec %>% filter(region == !!region, ff_area == range, Tipo == "PF")
+    sv_early_data <- all_pf_sf_prec %>% filter(region == !!region, ff_area == range, Tipo == "SF_early")
+    sv_intermediate_data <- all_pf_sf_prec %>% filter(region == !!region, ff_area == range, Tipo == "SF_intermediate")
+    sv_advanced_data <- all_pf_sf_prec %>% filter(region == !!region, ff_area == range, Tipo == "SF_advanced")
+    
+    # Teste t para cada comparação com PF
+    if (nrow(pv_data) > 1 && nrow(sv_early_data) > 1) {
+      p_values_pf_sf_early <- c(p_values_pf_sf_early, t.test(pv_data$Prec, sv_early_data$Prec, var.equal = TRUE)$p.value)
+    } else {
+      p_values_pf_sf_early <- c(p_values_pf_sf_early, NA)
+    }
+    
+    if (nrow(pv_data) > 1 && nrow(sv_intermediate_data) > 1) {
+      p_values_pf_sf_intermediate <- c(p_values_pf_sf_intermediate, t.test(pv_data$Prec, sv_intermediate_data$Prec, var.equal = TRUE)$p.value)
+    } else {
+      p_values_pf_sf_intermediate <- c(p_values_pf_sf_intermediate, NA)
+    }
+    
+    if (nrow(pv_data) > 1 && nrow(sv_advanced_data) > 1) {
+      p_values_pf_sf_advanced <- c(p_values_pf_sf_advanced, t.test(pv_data$Prec, sv_advanced_data$Prec, var.equal = TRUE)$p.value)
+    } else {
+      p_values_pf_sf_advanced <- c(p_values_pf_sf_advanced, NA)
+    }
+  }
+  
+  # Adicionando ao DataFrame
+  significance_results_t_prec[[paste0(region, "_PF_vs_SF_early")]] <- p_values_pf_sf_early
+  significance_results_t_prec[[paste0(region, "_PF_vs_SF_intermediate")]] <- p_values_pf_sf_intermediate
+  significance_results_t_prec[[paste0(region, "_PF_vs_SF_advanced")]] <- p_values_pf_sf_advanced
+}
+
+# Salvando os resultados em um arquivo
+write_xlsx(significance_results_t_prec, "data_group/significance_results_prec_testt.xlsx")
+
+gc()
+
+```
+
+### Teste Wilcox entre os tipos de cobertura - PF e SF
+
+```{r}
+
+# Leitura da planilha com os dados
+all_pf_sf_prec = read_xlsx("data_group/plan_data_group_prec.xlsx")
+
+#Lista dos intervalos de área
+area_ranges <- c("1-10", "10-20", "20-30", "30-40", "40-50",
+                 "50-60", "60-70", "70-80", "80-90", "90-100")
+
+# Lista das regiões
+regions <- c("CBA", "EBA", "SBA")
+
+# Criando um DataFrame para armazenar os resultados
+significance_results_w_prec <- data.frame(Intervalo = area_ranges)
+
+# Loop por cada região
+for (region in regions) {
+  
+  p_values_pf_sf_early <- c()
+  p_values_pf_sf_intermediate <- c()
+  p_values_pf_sf_advanced <- c()
+  
+  # Loop por cada intervalo de área
+  for (range in area_ranges) {
+    
+    # Filtrando os dados
+    pv_data <- all_pf_sf_prec %>% filter(region == !!region, ff_area == range, Tipo == "PF")
+    sv_early_data <- all_pf_sf_prec %>% filter(region == !!region, ff_area == range, Tipo == "SF_early")
+    sv_intermediate_data <- all_pf_sf_prec %>% filter(region == !!region, ff_area == range, Tipo == "SF_intermediate")
+    sv_advanced_data <- all_pf_sf_prec %>% filter(region == !!region, ff_area == range, Tipo == "SF_advanced")
+    
+    # Teste de Wilcoxon para cada comparação com PF
+    if (nrow(pv_data) > 1 && nrow(sv_early_data) > 1) {
+      p_values_pf_sf_early <- c(p_values_pf_sf_early, wilcox.test(pv_data$Prec, sv_early_data$Prec, paired = FALSE)$p.value)
+    } else {
+      p_values_pf_sf_early <- c(p_values_pf_sf_early, NA)
+    }
+    
+    if (nrow(pv_data) > 1 && nrow(sv_intermediate_data) > 1) {
+      p_values_pf_sf_intermediate <- c(p_values_pf_sf_intermediate, wilcox.test(pv_data$Prec, sv_intermediate_data$Prec, paired = FALSE)$p.value)
+    } else {
+      p_values_pf_sf_intermediate <- c(p_values_pf_sf_intermediate, NA)
+    }
+    
+    if (nrow(pv_data) > 1 && nrow(sv_advanced_data) > 1) {
+      p_values_pf_sf_advanced <- c(p_values_pf_sf_advanced, wilcox.test(pv_data$Prec, sv_advanced_data$Prec, paired = FALSE)$p.value)
+    } else {
+      p_values_pf_sf_advanced <- c(p_values_pf_sf_advanced, NA)
+    }
+  }
+  
+  # Adicionando ao DataFrame
+  significance_results_w_prec[[paste0(region, "_PF_vs_SF_early")]] <- p_values_pf_sf_early
+  significance_results_w_prec[[paste0(region, "_PF_vs_SF_intermediate")]] <- p_values_pf_sf_intermediate
+  significance_results_w_prec[[paste0(region, "_PF_vs_SF_advanced")]] <- p_values_pf_sf_advanced
+}
+
+# Salvando os resultados em um arquivo
+write_xlsx(significance_results_w_prec, "data_group/significance_results_prec_Wilcox_test.xlsx")
+
+gc()
+
+```
+
+#### Plot com significance
+
+```{r}
+
+# Criar um dataframe "long" de significância, onde cada linha tem uma região e o intervalo associado
+long_significance_results_w_prec <- significance_results_w_prec %>%
+  gather(key = "Comparison", value = "P_value", -Intervalo) %>%
+  separate(Comparison, into = c("region", "Comparison_Type"), sep = "_PF_vs_")
+
+# Mesclar esses resultados com os dados originais
+all_pf_sf_prec <- all_pf_sf_prec %>%
+  left_join(long_significance_results_w_prec, 
+            by = c("ff_area" = "Intervalo", "region" = "region", "Tipo" = "Comparison_Type"))
+
+# Adicionando uma coluna indicando se o intervalo foi significativo
+all_pf_sf_prec$Significant <- ifelse(all_pf_sf_prec$P_value < 0.05, "*", "")
+
+# Reordenar os níveis de 'Tipo'
+all_pf_sf_prec <- all_pf_sf_prec %>%
+  mutate(Tipo = factor(Tipo, levels = c("PF", "SF_early", "SF_intermediate", "SF_advanced")))
+
+# Função para calcular o valor máximo do bigode
+get_whisker_max <- function(x) {
+  stats <- boxplot.stats(x)$stats
+  return(stats[5]) # stats[5] normalmente corresponde ao valor máximo do bigode
+}
+
+
+# Calcular a posição do asterisco
+significance_positions <- all_pf_sf_prec %>%
+  group_by(ff_area, region, Tipo) %>%
+  summarise(max_whisker = get_whisker_max(Prec), .groups = "drop") %>%
+  left_join(long_significance_results_w_prec, 
+            by = c("ff_area" = "Intervalo", "region" = "region", "Tipo" = "Comparison_Type")) %>%
+  filter(P_value < 0.05) %>%
+  mutate(
+    asterisk_y = max_whisker + 15, # Ajuste para posicionar acima do bigode
+    x_adjust = case_when(
+      Tipo == "SF_early" ~ -0.1,
+      Tipo == "SF_intermediate" ~ 0.1,
+      Tipo == "SF_advanced" ~ 0.3
+    ),
+    x_pos = as.numeric(factor(ff_area, levels = area_ranges)) + x_adjust
+  )
+
+#head(significance_positions)
+
+# Plot
+p_ast_prec_w <- all_pf_sf_prec %>%
+  ggplot(aes(x = ff_area, y = Prec, fill = Tipo)) +
+  geom_boxplot(outlier.alpha = 0.4) +
+  facet_grid(~region) + 
+  ggthemes::theme_few() +
+  theme(
+    legend.position = c(0.77, 0.84),
+    legend.background = element_rect(fill = "transparent"),
+    text = element_text(size = 12, face = "bold", family = "serif"), 
+    axis.text = element_text(size = 10, face = "plain", family = "serif", color = "black"),
+    axis.text.x = element_blank(),
+    legend.text = element_text(size = 9),
+    panel.spacing.x = unit(1, "lines"), 
+    panel.spacing.y = unit(1, "lines"),
+    axis.title = element_text(size = 14, margin = margin(r = 20)),
+    strip.text = element_text(size = 14, face = "bold", family = "serif")
+  ) +
+  scale_fill_manual(values = c("midnightblue", "#87CEFA", "#1E90FF", "#0000FF"), name = NULL, labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +
+  scale_y_continuous(breaks = seq(0, max(all_pf_sf_prec$Prec, na.rm = TRUE), by = 250)) +
+  labs(
+    x = "",
+    y = "Average annual accumulated \n precipitation (mm)",
+    #y = expression(atop("Average annual accumulated", paste("precipitation (mm·", yr^{-1}, ")")))
+  ) +
+  # Adicionando os asteriscos
+  geom_text(data = significance_positions, aes(x = x_pos, y = asterisk_y, label = "*"),
+            size = 3, color = "red")
+
+p_ast_prec_w
+
+# Salvando a figura
+ggsave("fig/area_x_prec_pf_sf_significant_asterisco_wilcoxon.png", dpi = 600, width = 9, height = 5.5)
+
+gc()
+
+```
+
+## EVAPOTRANSPIRACAO
+
+### Agrupamento
+
+```{r,eval = FALSE, echo = TRUE}
+
+# Lendo a planilha
+# all_lulc_50_final = fread("/media/amazonia/hd2/lais/GitHub/paper_climate_forest_regeneration/data_group/plan_all_lulc_final.csv")
+# 
+# all_lulc_50_fil <- all_lulc_50_final %>%
+#    filter(Tipo %in% c("SF", "PF"))
+
+# Creating area ranges to store the averages of each range
+all_lulc_evapo = all_lulc_50_fil %>%
+  filter(!Evapo >= 2000) %>% 
+  summarise(
+    Evapo = Evapo,
+    Frac = frac_area,
+    Tipo = Tipo,
+    Ano = Ano,
+    region = Region,
+    Idade = Idade_SF
+  ) %>%
+  mutate(
+    ff_area = case_when(Frac >= 0.01 & Frac <= 0.1 ~ "1-10",
+                        Frac > 0.1 & Frac <= 0.2 ~ "10-20",
+                        Frac > 0.2 & Frac <= 0.3 ~ "20-30",
+                        Frac > 0.3 & Frac <= 0.4 ~ "30-40",
+                        Frac > 0.4 & Frac <= 0.5 ~ "40-50",
+                        Frac > 0.5 & Frac <= 0.6 ~ "50-60",
+                        Frac > 0.6 & Frac <= 0.7 ~ "60-70",
+                        Frac > 0.7 & Frac <= 0.8 ~ "70-80",
+                        Frac > 0.8 & Frac <= 0.9 ~ "80-90",
+                        Frac > 0.9 & Frac <= 1.0 ~ "90-100")) %>% 
+  mutate(
+    idade = case_when(Idade >= 0 & Idade <= 10 ~ "<= 10",
+                      Idade > 10 & Idade <= 20 ~ "10-20",
+                      Idade > 20 ~ "> 20")) %>%
+  # Calculating the average evapotranspiration for each cluster
+  group_by(Ano, Tipo, region, ff_area, idade) %>% 
+  summarise(
+    Evapo = mean(Evapo),
+    n_obs = n(),
+    .groups = "drop"
+  )
+
+# Criar o novo dataframe com as categorias desejadas
+all_lulc_evapo_stages <- all_lulc_evapo %>%
+  mutate(Tipo = case_when(Tipo == "PF" ~ "PF", 
+                          Tipo == "SF" & idade == "<= 10" ~ "SF_early", 
+                          Tipo == "SF" & idade == "10-20" ~ "SF_intermediate", 
+                          Tipo == "SF" & idade == "> 20" ~ "SF_advanced",
+                          TRUE ~ NA_character_ )) %>% 
+  filter(!is.na(Tipo))  # Remove linhas que não se encaixam nas categorias definidas
+
+
+all_lulc_evapo_final <- all_lulc_evapo_stages %>% 
+  mutate(type = case_when(Tipo == "PF" ~ 1,
+                          Tipo == "SF_early" ~ 2, 
+                          Tipo == "SF_intermediate" ~ 3,
+                          Tipo == "SF_advanced" ~ 4))
+
+# Verificar o resultado
+#head(all_lulc_evapo_final)
+
+max_min_evapo = all_lulc_evapo_final %>%
+  group_by(Tipo, region, ff_area, idade) %>%
+  summarise(
+    max_evapo = max(Evapo),
+    median_evapo = median(Evapo),
+    min_evapo = min(Evapo)
+  )
+
+# Export data min and max
+write_xlsx(max_min_evapo, "data_group/plan_max_and_min_group_evapo.xlsx")
+
+# Export data grouped
+write_xlsx(all_lulc_evapo_final, "data_group/plan_data_group_evapo.xlsx")
+
+#rm(all_lulc_50_final)
+
+gc()
+
+```
+
+### Testes normalidade, homocedasticidade e independência
+
+```{r}
+
+all_pf_sf_evapo = read_xlsx("data_group/plan_data_group_evapo.xlsx")
+
+# ---- NORMALIDADE ----
+
+# Realizar o teste de normalidade Shapiro-Wilk 
+shapiro_test_results_evapo <- all_pf_sf_evapo %>%
+  group_by(Tipo,region, ff_area) %>%
+  summarise(
+    p_value = shapiro.test(Evapo)$p.value
+  ) %>%
+  ungroup()
+
+# Visualizar os resultados do teste Shapiro-Wilk
+print(shapiro_test_results_evapo)
+
+# Exportar os resultados do teste de normalidade
+write_xlsx(shapiro_test_results_evapo, "data_group/shapiro_test_evapo_results.xlsx")
+
+
+# ---- HOMOCEDASTICIDADE ----
+
+# Garantindo que 'Tipo' seja tratado como fator
+all_pf_sf_evapo$Tipo <- as.factor(all_pf_sf_evapo$Tipo)
+
+# Lista para armazenar os resultados
+results_list_evapo <- list()
+
+# Loop por cada combinação de 'region' e 'ff_area'
+for (region in unique(all_pf_sf_evapo$region)) {
+  for (ff_area in unique(all_pf_sf_evapo$ff_area)) {
+    
+    # Filtrar os dados para a combinação atual
+    data_subset <- all_pf_sf_evapo %>%
+      filter(region == !!region, ff_area == !!ff_area)
+    
+    # Verificar se há dados suficientes para realizar o teste (precisa de pelo menos 2 tipos)
+    if (nrow(data_subset) > 1 && length(unique(data_subset$Tipo)) > 1) {
+      try({
+        # Realizar o teste de homocedasticidade Levene
+        levene_test_evapo <- leveneTest(Evapo ~ Tipo, data = data_subset)
+        p_value <- levene_test_evapo$`Pr(>F)`[1]  # Extraindo o valor p
+      }, silent = TRUE)
+    } else {
+      p_value <- NA  # Insere NA se não houver dados suficientes
+    }
+    
+    # Adicionar o resultado ao vetor de resultados apenas se o p_value não for nulo
+    if (!is.null(p_value)) {
+      results_list_evapo[[length(results_list_evapo) + 1]] <- data.frame(region = region, 
+                                                             ff_area = ff_area, 
+                                                             p_value = p_value)
+    }
+  }
+}
+
+# Combinar todos os resultados em um DataFrame
+levene_test_results_evapo <- do.call(rbind, results_list_evapo)
+
+# Exibir os resultados
+print(levene_test_results_evapo)
+
+# Exportar os resultados para um arquivo Excel
+write_xlsx(levene_test_results_evapo, "data_group/levene_test_evapo_results.xlsx")
+
+
+# ---- INDEPENDÊNCIA ----
+
+
+# Lista para armazenar os resultados
+kendall_results_list_evapo <- list()
+
+# Loop por cada combinação de 'region' e 'ff_area'
+for (region in unique(all_pf_sf_evapo$region)) {
+  for (ff_area in unique(all_pf_sf_evapo$ff_area)) {
+    
+    # Filtrar os dados para a combinação atual
+    data_subset <- all_pf_sf_evapo %>%
+      filter(region == !!region, ff_area == !!ff_area)
+    
+    # Verificar se há dados suficientes para realizar o teste (precisa de pelo menos 2 tipos)
+    if (nrow(data_subset) > 1 && length(unique(data_subset$Tipo)) > 1) {
+      try({
+        # Realizar o teste de correlação de Kendall entre 'Evapo' e 'Tipo'
+        cor_test <- cor.test(as.numeric(data_subset$Evapo), as.numeric(data_subset$Tipo), method = "kendall")
+        p_value <- cor_test$p.value  # Extraindo o valor p
+        cor_value <- cor_test$estimate  # Extraindo o valor da correlação
+      }, silent = TRUE)
+    } else {
+      p_value <- NA  # Insere NA se não houver dados suficientes
+      cor_value <- NA
+    }
+    
+    # Adicionar o resultado ao vetor de resultados apenas se o p_value não for nulo
+    if (!is.null(p_value)) {
+      kendall_results_list_evapo[[length(kendall_results_list_evapo) + 1]] <- data.frame(
+        region = region, 
+        ff_area = ff_area, 
+        cor_value = cor_value,
+        p_value = p_value
+      )
+    }
+  }
+}
+
+# Combinar todos os resultados em um DataFrame
+kendall_test_results_evapo <- do.call(rbind, kendall_results_list_evapo)
+
+# Exportar os resultados para um arquivo Excel
+write_xlsx(kendall_test_results_evapo, "data_group/kendall_test_evapo_results.xlsx")
+
+gc()
+
+```
+
+### Teste t entre os tipos de cobertura - PF e SF
+
+```{r}
+
+# --------------------------------------------------------------------
+# OS PRESSUPOSTOS NÃO FORAM ATENDIDOS - RODAR O TESTE NÃO PARAMÉTRICO
+# --------------------------------------------------------------------
+
+# Lista dos intervalos de área
+area_ranges <- c("1-10", "10-20", "20-30", "30-40", "40-50", 
+                 "50-60", "60-70", "70-80", "80-90", "90-100")
+
+# Lista das regiões
+regions <- c("CBA", "EBA", "SBA")
+
+# Criando um DataFrame vazio para armazenar os resultados
+significance_results_t_evapo <- data.frame(Intervalo = area_ranges)  # Adiciona a coluna de intervalos
+
+# Loop por cada região
+for (region in regions) {
+  
+  p_values_pf_sf_early <- c()
+  p_values_pf_sf_intermediate <- c()
+  p_values_pf_sf_advanced <- c()
+  
+  # Loop por cada intervalo de área
+  for (range in area_ranges) {
+    
+    # Filtrando os dados para PF e SF no intervalo atual e região atual
+    pv_data <- all_pf_sf_evapo %>% filter(region == !!region, ff_area == range, Tipo == "PF")
+    sv_early_data <- all_pf_sf_evapo %>% filter(region == !!region, ff_area == range, Tipo == "SF_early")
+    sv_intermediate_data <- all_pf_sf_evapo %>% filter(region == !!region, ff_area == range, Tipo == "SF_intermediate")
+    sv_advanced_data <- all_pf_sf_evapo %>% filter(region == !!region, ff_area == range, Tipo == "SF_advanced")
+    
+    # Teste t para cada comparação com PF
+    if (nrow(pv_data) > 1 && nrow(sv_early_data) > 1) {
+      p_values_pf_sf_early <- c(p_values_pf_sf_early, t.test(pv_data$Evapo, sv_early_data$Evapo, var.equal = TRUE)$p.value)
+    } else {
+      p_values_pf_sf_early <- c(p_values_pf_sf_early, NA)
+    }
+    
+    if (nrow(pv_data) > 1 && nrow(sv_intermediate_data) > 1) {
+      p_values_pf_sf_intermediate <- c(p_values_pf_sf_intermediate, t.test(pv_data$Evapo, sv_intermediate_data$Evapo, var.equal = TRUE)$p.value)
+    } else {
+      p_values_pf_sf_intermediate <- c(p_values_pf_sf_intermediate, NA)
+    }
+    
+    if (nrow(pv_data) > 1 && nrow(sv_advanced_data) > 1) {
+      p_values_pf_sf_advanced <- c(p_values_pf_sf_advanced, t.test(pv_data$Evapo, sv_advanced_data$Evapo, var.equal = TRUE)$p.value)
+    } else {
+      p_values_pf_sf_advanced <- c(p_values_pf_sf_advanced, NA)
+    }
+  }
+  
+  # Adicionando ao DataFrame
+  significance_results_t_evapo[[paste0(region, "_PF_vs_SF_early")]] <- p_values_pf_sf_early
+  significance_results_t_evapo[[paste0(region, "_PF_vs_SF_intermediate")]] <- p_values_pf_sf_intermediate
+  significance_results_t_evapo[[paste0(region, "_PF_vs_SF_advanced")]] <- p_values_pf_sf_advanced
+}
+
+# Salvando os resultados em um arquivo
+write_xlsx(significance_results_t_evapo, "data_group/significance_results_evapo_testt.xlsx")
+
+gc()
+
+```
+
+### Teste Wilcox entre os tipos de cobertura - PF e SF
+
+```{r}
+
+# Leitura da planilha com os dados
+all_pf_sf_evapo = read_xlsx("data_group/plan_data_group_evapo.xlsx")
+
+# Lista dos intervalos de área
+area_ranges <- c("1-10", "10-20", "20-30", "30-40", "40-50", 
+                 "50-60", "60-70", "70-80", "80-90", "90-100")
+
+# Lista das regiões
+regions <- c("CBA", "EBA", "SBA")
+
+# Criando um DataFrame para armazenar os resultados
+significance_results_w_evapo <- data.frame(Intervalo = area_ranges)
+
+# Loop por cada região
+for (region in regions) {
+  
+  p_values_pf_sf_early <- c()
+  p_values_pf_sf_intermediate <- c()
+  p_values_pf_sf_advanced <- c()
+  
+  # Loop por cada intervalo de área
+  for (range in area_ranges) {
+    
+    # Filtrando os dados
+    pv_data <- all_pf_sf_evapo %>% filter(region == !!region, ff_area == range, Tipo == "PF")
+    sv_early_data <- all_pf_sf_evapo %>% filter(region == !!region, ff_area == range, Tipo == "SF_early")
+    sv_intermediate_data <- all_pf_sf_evapo %>% filter(region == !!region, ff_area == range, Tipo == "SF_intermediate")
+    sv_advanced_data <- all_pf_sf_evapo %>% filter(region == !!region, ff_area == range, Tipo == "SF_advanced")
+    
+    # Teste de Wilcoxon para cada comparação com PF
+    if (nrow(pv_data) > 1 && nrow(sv_early_data) > 1) {
+      p_values_pf_sf_early <- c(p_values_pf_sf_early, wilcox.test(pv_data$Evapo, sv_early_data$Evapo, paired = FALSE)$p.value)
+    } else {
+      p_values_pf_sf_early <- c(p_values_pf_sf_early, NA)
+    }
+    
+    if (nrow(pv_data) > 1 && nrow(sv_intermediate_data) > 1) {
+      p_values_pf_sf_intermediate <- c(p_values_pf_sf_intermediate, wilcox.test(pv_data$Evapo, sv_intermediate_data$Evapo, paired = FALSE)$p.value)
+    } else {
+      p_values_pf_sf_intermediate <- c(p_values_pf_sf_intermediate, NA)
+    }
+    
+    if (nrow(pv_data) > 1 && nrow(sv_advanced_data) > 1) {
+      p_values_pf_sf_advanced <- c(p_values_pf_sf_advanced, wilcox.test(pv_data$Evapo, sv_advanced_data$Evapo, paired = FALSE)$p.value)
+    } else {
+      p_values_pf_sf_advanced <- c(p_values_pf_sf_advanced, NA)
+    }
+  }
+  
+  # Adicionando ao DataFrame
+  significance_results_w_evapo[[paste0(region, "_PF_vs_SF_early")]] <- p_values_pf_sf_early
+  significance_results_w_evapo[[paste0(region, "_PF_vs_SF_intermediate")]] <- p_values_pf_sf_intermediate
+  significance_results_w_evapo[[paste0(region, "_PF_vs_SF_advanced")]] <- p_values_pf_sf_advanced
+}
+
+# Salvando os resultados em um arquivo
+write_xlsx(significance_results_w_evapo, "data_group/significance_results_evapo_Wilcox_test.xlsx")
+
+gc()
+```
+
+#### Plot com significance
+
+```{r}
+
+# Criar um dataframe "long" de significância, onde cada linha tem uma região e o intervalo associado
+long_significance_results_w_evapo <- significance_results_w_evapo %>%
+  gather(key = "Comparison", value = "P_value", -Intervalo) %>%
+  separate(Comparison, into = c("region", "Comparison_Type"), sep = "_PF_vs_")
+
+# Mesclar esses resultados com os dados originais
+all_pf_sf_evapo <- all_pf_sf_evapo %>%
+  left_join(long_significance_results_w_evapo, 
+            by = c("ff_area" = "Intervalo", "region" = "region", "Tipo" = "Comparison_Type"))
+
+# Adicionando uma coluna indicando se o intervalo foi significativo
+all_pf_sf_evapo$Significant <- ifelse(all_pf_sf_evapo$P_value < 0.05, "*", "")
+
+# Reordenar os níveis de 'Tipo'
+all_pf_sf_evapo <- all_pf_sf_evapo %>%
+  mutate(Tipo = factor(Tipo, levels = c("PF", "SF_early", "SF_intermediate", "SF_advanced")))
+
+# Função para calcular o valor máximo do bigode
+get_whisker_max <- function(x) {
+  stats <- boxplot.stats(x)$stats
+  return(stats[5]) # stats[5] normalmente corresponde ao valor máximo do bigode
+}
+
+
+# Calcular a posição do asterisco
+significance_positions <- all_pf_sf_evapo %>%
+  group_by(ff_area, region, Tipo) %>%
+  summarise(max_whisker = get_whisker_max(Evapo), .groups = "drop") %>%
+  left_join(long_significance_results_w_evapo, 
+            by = c("ff_area" = "Intervalo", "region" = "region", "Tipo" = "Comparison_Type")) %>%
+  filter(P_value < 0.05) %>%
+  mutate(
+    asterisk_y = max_whisker + 10, # Ajuste para posicionar acima do bigode
+    x_adjust = case_when(
+      Tipo == "SF_early" ~ -0.1,
+      Tipo == "SF_intermediate" ~ 0.1,
+      Tipo == "SF_advanced" ~ 0.3
+    ),
+    x_pos = as.numeric(factor(ff_area, levels = area_ranges)) + x_adjust
+  )
+
+#head(significance_positions)
+
+# Plot com asteriscos de significância
+p_ast_evapo_w <- all_pf_sf_evapo %>% 
+  ggplot(aes(x=ff_area, y=Evapo, fill=Tipo)) +
+  geom_boxplot(outlier.alpha = 0.4) +
+  facet_grid(~region) + 
+  ggthemes::theme_few() +
+  theme(
+    legend.position = c(0.77, 0.84),
+    legend.background = element_rect(fill="transparent"),
+    #legend.position = "top",
+    text = element_text(size = 12, face = "bold",family = "serif"), 
+    #text = element_text(size = 7, face = "bold",family = "serif"), 
+    axis.text = element_text(size = 10, face = "plain", family = "serif", color = "black"),
+    #axis.text = element_text(size = 6, face = "plain", family = "serif", color = "black"),
+    axis.text.x = element_blank(),
+    #axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+    legend.text = element_text(size = 9),
+    #legend.text = element_text(size = 7),
+    panel.spacing.x = unit(1, "lines"),  
+    panel.spacing.y = unit(1, "lines"),
+    axis.title = element_text(size = 14, margin = margin(r = 20)),
+    strip.text = element_blank()) +
+  scale_fill_manual(values = c("#02401B", "lightgreen", "green1", "green4"), name = NULL, labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +
+  #geom_vline(xintercept = c(1,2,3,4,5,6,7,8,9,10), linetype = "dashed", color = "lightgray", size = 0.5) +
+  #labels = c("Primary Vegetation           ", "Secondary Vegetation"))+
+  labs(x = "",
+       y = "Average annual accumulated \n evapotranspiration (mm)",
+       #y = expression(atop("Average annual accumulated", paste("evapotranspiration (mm·", yr^{-1}, ")")))
+       ) +
+  # Adicionando os asteriscos
+  geom_text(data = significance_positions, 
+            aes(x = x_pos, y = asterisk_y, label = "*"),
+            size = 3, color = "red")
+
+p_ast_evapo_w
+
+# Salvando a figura
+ggsave("fig/area_x_evapo_pf_sf_significant_asterisco_wilcoxon.png", dpi = 600, width = 9, height = 5.5)
+
+gc()
+
+```
+
+## TEMPERTAURA
+
+### Agrupamento
+
+```{r,eval = FALSE, echo = TRUE}
+
+# Lendo a planilha
+# all_lulc_50_final = fread("/media/amazonia/hd2/lais/GitHub/paper_climate_forest_regeneration/data_group/plan_all_lulc_final.csv")
+
+# all_lulc_50_fil <- all_lulc_50_final %>% 
+#    filter(Tipo %in% c("SF", "PF"))
+
+# Calculating the average evapotranspiration for each cluster
+all_lulc_temp = all_lulc_50_fil %>% 
+  summarise(
+    Temp = Temp,
+    Frac = frac_area,
+    Tipo = Tipo,
+    Ano = Ano,
+    region = Region,
+    Idade = Idade_SF
+  ) %>%
+  mutate(
+    ff_area = case_when(Frac >= 0.01 & Frac <= 0.1 ~ "1-10",
+                        Frac > 0.1 & Frac <= 0.2 ~ "10-20",
+                        Frac > 0.2 & Frac <= 0.3 ~ "20-30",
+                        Frac > 0.3 & Frac <= 0.4 ~ "30-40",
+                        Frac > 0.4 & Frac <= 0.5 ~ "40-50",
+                        Frac > 0.5 & Frac <= 0.6 ~ "50-60",
+                        Frac > 0.6 & Frac <= 0.7 ~ "60-70",
+                        Frac > 0.7 & Frac <= 0.8 ~ "70-80",
+                        Frac > 0.8 & Frac <= 0.9 ~ "80-90",
+                        Frac > 0.9 & Frac <= 1.0 ~ "90-100")) %>% 
+  mutate(
+    idade = case_when(Idade >= 0 & Idade <= 10 ~ "<= 10",
+                      Idade > 10 & Idade <= 20 ~ "10-20",
+                      Idade > 20 ~ "> 20")) %>%
+  # Calculating the average evapotranspiration for each cluster
+  group_by(Ano, Tipo, region, ff_area, idade) %>% 
+  summarise(
+    Temp = mean(Temp),
+    n_obs = n(),
+    .groups = "drop"
+  )
+
+# Criar o novo dataframe com as categorias desejadas
+all_lulc_temp_stages <- all_lulc_temp %>%
+  mutate(Tipo = case_when(Tipo == "PF" ~ "PF",
+                          Tipo == "SF" & idade == "<= 10" ~ "SF_early",
+                          Tipo == "SF" & idade == "10-20" ~ "SF_intermediate",
+                          Tipo == "SF" & idade == "> 20" ~ "SF_advanced",
+                          TRUE ~ NA_character_ )) %>% 
+
+  filter(!is.na(Tipo))  # Remove linhas que não se encaixam nas categorias definidas
+
+
+all_lulc_temp_final <- all_lulc_temp_stages %>% 
+  mutate(type = case_when(Tipo == "PF" ~ 1,
+                          Tipo == "SF_early" ~ 2, 
+                          Tipo == "SF_intermediate" ~ 3,
+                          Tipo == "SF_advanced" ~ 4))
+
+# Verificar o resultado
+#head(all_lulc_temp_final)
+
+max_min_temp = all_lulc_temp_final %>%
+  group_by(Tipo, region, ff_area, idade) %>%
+  summarise(
+    max_temp = max(Temp),
+    median_temp = median(Temp),
+    min_temp = min(Temp)
+  )
+
+# Export data min and max
+write_xlsx(max_min_temp, "data_group/plan_max_and_min_group_temp.xlsx")
+
+# Export data grouped
+write_xlsx(all_lulc_temp_final, "data_group/plan_data_group_temp.xlsx")
+
+#rm(all_lulc_50_final)
+
+gc()
+```
+
+### Testes normalidade, homocedasticidade e independência
+
+```{r}
+
+all_pf_sf_temp = read_xlsx("data_group/plan_data_group_temp.xlsx")
+
+# ---- NORMALIDADE ----
+
+# Realizar o teste de normalidade Shapiro-Wilk 
+shapiro_test_results_temp <- all_pf_sf_temp %>%
+  group_by(Tipo,region, ff_area) %>%
+  summarise(
+    p_value = shapiro.test(Temp)$p.value
+  ) %>%
+  ungroup()
+
+# Visualizar os resultados do teste Shapiro-Wilk
+print(shapiro_test_results_temp)
+
+# Exportar os resultados do teste de normalidade
+write_xlsx(shapiro_test_results_temp, "data_group/shapiro_test_temp_results.xlsx")
+
+
+# ---- HOMOCEDASTICIDADE ----
+
+# Garantindo que 'Tipo' seja tratado como fator
+all_pf_sf_temp$Tipo <- as.factor(all_pf_sf_temp$Tipo)
+
+# Lista para armazenar os resultados
+results_list_temp <- list()
+
+# Loop por cada combinação de 'region' e 'ff_area'
+for (region in unique(all_pf_sf_temp$region)) {
+  for (ff_area in unique(all_pf_sf_temp$ff_area)) {
+    
+    # Filtrar os dados para a combinação atual
+    data_subset <- all_pf_sf_temp %>%
+      filter(region == !!region, ff_area == !!ff_area)
+    
+    # Verificar se há dados suficientes para realizar o teste (precisa de pelo menos 2 tipos)
+    if (nrow(data_subset) > 1 && length(unique(data_subset$Tipo)) > 1) {
+      try({
+        # Realizar o teste de homocedasticidade Levene
+        levene_test_temp <- leveneTest(Temp ~ Tipo, data = data_subset)
+        p_value <- levene_test_temp$`Pr(>F)`[1]  # Extraindo o valor p
+      }, silent = TRUE)
+    } else {
+      p_value <- NA  # Insere NA se não houver dados suficientes
+    }
+    
+    # Adicionar o resultado ao vetor de resultados apenas se o p_value não for nulo
+    if (!is.null(p_value)) {
+      results_list_temp[[length(results_list_temp) + 1]] <- data.frame(region = region, 
+                                                             ff_area = ff_area, 
+                                                             p_value = p_value)
+    }
+  }
+}
+
+# Combinar todos os resultados em um DataFrame
+levene_test_results_temp <- do.call(rbind, results_list_temp)
+
+# Exibir os resultados
+print(levene_test_results_temp)
+
+# Exportar os resultados para um arquivo Excel
+write_xlsx(levene_test_results_temp, "data_group/levene_test_temp_results.xlsx")
+
+
+# ---- INDEPENDÊNCIA ----
+
+
+# Lista para armazenar os resultados
+kendall_results_list_temp <- list()
+
+# Loop por cada combinação de 'region' e 'ff_area'
+for (region in unique(all_pf_sf_temp$region)) {
+  for (ff_area in unique(all_pf_sf_temp$ff_area)) {
+    
+    # Filtrar os dados para a combinação atual
+    data_subset <- all_pf_sf_temp %>%
+      filter(region == !!region, ff_area == !!ff_area)
+    
+    # Verificar se há dados suficientes para realizar o teste (precisa de pelo menos 2 tipos)
+    if (nrow(data_subset) > 1 && length(unique(data_subset$Tipo)) > 1) {
+      try({
+        # Realizar o teste de correlação de Kendall entre 'Temp' e 'Tipo'
+        cor_test <- cor.test(as.numeric(data_subset$Temp), as.numeric(data_subset$Tipo), method = "kendall")
+        p_value <- cor_test$p.value  # Extraindo o valor p
+        cor_value <- cor_test$estimate  # Extraindo o valor da correlação
+      }, silent = TRUE)
+    } else {
+      p_value <- NA  # Insere NA se não houver dados suficientes
+      cor_value <- NA
+    }
+    
+    # Adicionar o resultado ao vetor de resultados apenas se o p_value não for nulo
+    if (!is.null(p_value)) {
+      kendall_results_list_temp[[length(kendall_results_list_temp) + 1]] <- data.frame(
+        region = region, 
+        ff_area = ff_area, 
+        cor_value = cor_value,
+        p_value = p_value
+      )
+    }
+  }
+}
+
+# Combinar todos os resultados em um DataFrame
+kendall_test_results_temp <- do.call(rbind, kendall_results_list_temp)
+
+# Exportar os resultados para um arquivo Excel
+write_xlsx(kendall_test_results_temp, "data_group/kendall_test_temp_results.xlsx")
+
+gc()
+
+```
+
+### Teste t entre os tipos de cobertura - PF e SF
+
+```{r}
+
+# --------------------------------------------------------------------
+# OS PRESSUPOSTOS NÃO FORAM ATENDIDOS - RODAR O TESTE NÃO PARAMÉTRICO
+# --------------------------------------------------------------------
+
+# Lista dos intervalos de área
+area_ranges <- c("1-10", "10-20", "20-30", "30-40", "40-50", 
+                 "50-60", "60-70", "70-80", "80-90", "90-100")
+
+# Lista das regiões
+regions <- c("CBA", "EBA", "SBA")
+
+# Criando um DataFrame vazio para armazenar os resultados
+significance_results_t_temp <- data.frame(Intervalo = area_ranges)  # Adiciona a coluna de intervalos
+
+# Loop por cada região
+for (region in regions) {
+  
+  p_values_pf_sf_early <- c()
+  p_values_pf_sf_intermediate <- c()
+  p_values_pf_sf_advanced <- c()
+  
+  # Loop por cada intervalo de área
+  for (range in area_ranges) {
+    
+    # Filtrando os dados
+    pv_data <- all_pf_sf_temp %>% filter(region == !!region, ff_area == range, Tipo == "PF")
+    sv_early_data <- all_pf_sf_temp %>% filter(region == !!region, ff_area == range, Tipo == "SF_early")
+    sv_intermediate_data <- all_pf_sf_temp %>% filter(region == !!region, ff_area == range, Tipo == "SF_intermediate")
+    sv_advanced_data <- all_pf_sf_temp %>% filter(region == !!region, ff_area == range, Tipo == "SF_advanced")
+    
+    # Teste t para cada comparação com PF
+    if (nrow(pv_data) > 1 && nrow(sv_early_data) > 1) {
+      p_values_pf_sf_early <- c(p_values_pf_sf_early, t.test(pv_data$Temp, sv_early_data$Temp, var.equal = TRUE)$p.value)
+    } else {
+      p_values_pf_sf_early <- c(p_values_pf_sf_early, NA)
+    }
+    
+    if (nrow(pv_data) > 1 && nrow(sv_intermediate_data) > 1) {
+      p_values_pf_sf_intermediate <- c(p_values_pf_sf_intermediate, t.test(pv_data$Temp, sv_intermediate_data$Temp, var.equal = TRUE)$p.value)
+    } else {
+      p_values_pf_sf_intermediate <- c(p_values_pf_sf_intermediate, NA)
+    }
+    
+    if (nrow(pv_data) > 1 && nrow(sv_advanced_data) > 1) {
+      p_values_pf_sf_advanced <- c(p_values_pf_sf_advanced, t.test(pv_data$Temp, sv_advanced_data$Temp, var.equal = TRUE)$p.value)
+    } else {
+      p_values_pf_sf_advanced <- c(p_values_pf_sf_advanced, NA)
+    }
+  }
+  
+  # Adicionando ao DataFrame
+  significance_results_t_temp[[paste0(region, "_PF_vs_SF_early")]] <- p_values_pf_sf_early
+  significance_results_t_temp[[paste0(region, "_PF_vs_SF_intermediate")]] <- p_values_pf_sf_intermediate
+  significance_results_t_temp[[paste0(region, "_PF_vs_SF_advanced")]] <- p_values_pf_sf_advanced
+}
+
+# Salvando os resultados em um arquivo
+write_xlsx(significance_results_t_temp, "data_group/significance_results_temp_testt.xlsx")
+
+gc()
+
+```
+
+### Teste Wilcox entre os tipos de cobertura - PF e SF
+
+```{r}
+
+# Leitura da planilha com os dados
+all_pf_sf_temp = read_xlsx("data_group/plan_data_group_temp.xlsx")
+
+# Lista dos intervalos de área
+area_ranges <- c("1-10", "10-20", "20-30", "30-40", "40-50", 
+                 "50-60", "60-70", "70-80", "80-90", "90-100")
+
+# Lista das regiões
+regions <- c("CBA", "EBA", "SBA")
+
+# Criando um DataFrame vazio para armazenar os resultados
+significance_results_w_temp <- data.frame(Intervalo = area_ranges)  # Adiciona a coluna de intervalos
+
+# Loop por cada região
+for (region in regions) {
+  
+  p_values_pf_sf_early <- c()
+  p_values_pf_sf_intermediate <- c()
+  p_values_pf_sf_advanced <- c()
+  
+  # Loop por cada intervalo de área
+  for (range in area_ranges) {
+    
+    # Filtrando os dados
+    pv_data <- all_pf_sf_temp %>% filter(region == !!region, ff_area == range, Tipo == "PF")
+    sv_early_data <- all_pf_sf_temp %>% filter(region == !!region, ff_area == range, Tipo == "SF_early")
+    sv_intermediate_data <- all_pf_sf_temp %>% filter(region == !!region, ff_area == range, Tipo == "SF_intermediate")
+    sv_advanced_data <- all_pf_sf_temp %>% filter(region == !!region, ff_area == range, Tipo == "SF_advanced")
+    
+    # Teste de Wilcoxon para cada comparação com PF
+    if (nrow(pv_data) > 1 && nrow(sv_early_data) > 1) {
+      p_values_pf_sf_early <- c(p_values_pf_sf_early, wilcox.test(pv_data$Temp, sv_early_data$Temp, paired = FALSE)$p.value)
+    } else {
+      p_values_pf_sf_early <- c(p_values_pf_sf_early, NA)
+    }
+    
+    if (nrow(pv_data) > 1 && nrow(sv_intermediate_data) > 1) {
+      p_values_pf_sf_intermediate <- c(p_values_pf_sf_intermediate, wilcox.test(pv_data$Temp, sv_intermediate_data$Temp, paired = FALSE)$p.value)
+    } else {
+      p_values_pf_sf_intermediate <- c(p_values_pf_sf_intermediate, NA)
+    }
+    
+    if (nrow(pv_data) > 1 && nrow(sv_advanced_data) > 1) {
+      p_values_pf_sf_advanced <- c(p_values_pf_sf_advanced, wilcox.test(pv_data$Temp, sv_advanced_data$Temp, paired = FALSE)$p.value)
+    } else {
+      p_values_pf_sf_advanced <- c(p_values_pf_sf_advanced, NA)
+    }
+  }
+  
+  # Adicionando ao DataFrame
+  significance_results_w_temp[[paste0(region, "_PF_vs_SF_early")]] <- p_values_pf_sf_early
+  significance_results_w_temp[[paste0(region, "_PF_vs_SF_intermediate")]] <- p_values_pf_sf_intermediate
+  significance_results_w_temp[[paste0(region, "_PF_vs_SF_advanced")]] <- p_values_pf_sf_advanced
+}
+
+# Salvando os resultados em um arquivo
+write_xlsx(significance_results_w_temp, "data_group/significance_results_temp_Wilcox_test.xlsx")
+
+gc()
+```
+
+#### Plot com significance
+
+```{r}
+
+# Criar um dataframe "long" de significância, onde cada linha tem uma região e o intervalo associado
+long_significance_results_w_temp <- significance_results_w_temp %>%
+  gather(key = "Comparison", value = "P_value", -Intervalo) %>%
+  separate(Comparison, into = c("region", "Comparison_Type"), sep = "_PF_vs_")
+
+# Mesclar esses resultados com os dados originais
+all_pf_sf_temp <- all_pf_sf_temp %>%
+  left_join(long_significance_results_w_temp, 
+            by = c("ff_area" = "Intervalo", "region" = "region", "Tipo" = "Comparison_Type"))
+
+# Adicionando uma coluna indicando se o intervalo foi significativo
+all_pf_sf_temp$Significant <- ifelse(all_pf_sf_temp$P_value < 0.05, "*", "")
+
+# Reordenar os níveis de 'Tipo'
+all_pf_sf_temp <- all_pf_sf_temp %>%
+  mutate(Tipo = factor(Tipo, levels = c("PF", "SF_early", "SF_intermediate", "SF_advanced")))
+
+# Função para calcular o valor máximo do bigode
+get_whisker_max <- function(x) {
+  stats <- boxplot.stats(x)$stats
+  return(stats[5]) # stats[5] normalmente corresponde ao valor máximo do bigode
+}
+
+
+# Calcular a posição do asterisco
+significance_positions <- all_pf_sf_temp %>%
+  group_by(ff_area, region, Tipo) %>%
+  summarise(max_whisker = get_whisker_max(Temp), .groups = "drop") %>%
+  left_join(long_significance_results_w_temp, 
+            by = c("ff_area" = "Intervalo", "region" = "region", "Tipo" = "Comparison_Type")) %>%
+  filter(P_value < 0.05) %>%
+  mutate(
+    asterisk_y = max_whisker + 0.1, # Ajuste para posicionar acima do bigode
+    x_adjust = case_when(
+      Tipo == "SF_early" ~ -0.1,
+      Tipo == "SF_intermediate" ~ 0.1,
+      Tipo == "SF_advanced" ~ 0.3
+    ),
+    x_pos = as.numeric(factor(ff_area, levels = area_ranges)) + x_adjust
+  )
+
+#head(significance_positions)
+
+
+# Plot com asteriscos de significância
+p_ast_temp_w <-all_pf_sf_temp %>% 
+  ggplot(aes(x=ff_area, y=Temp, fill=Tipo)) +
+  geom_boxplot(outlier.alpha = 0.4) +
+  facet_grid(~region) + 
+  ggthemes::theme_few() +
+  theme(
+    legend.position = c(0.91, 0.84),
+    legend.background = element_rect(fill="transparent"),
+    text = element_text(size = 12, face = "bold",family = "serif"), 
+    #text = element_text(size = 7, face = "bold",family = "serif"), 
+    axis.text = element_text(size = 10, face = "plain", family = "serif", color = "black"),
+    #axis.text.y = element_text(size = 12, face = "plain", family = "serif", color = "black"),
+    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+    legend.text = element_text(size = 9),
+    #legend.text = element_text(size = 7),
+    panel.spacing.x = unit(1, "lines"),  
+    panel.spacing.y = unit(1, "lines"),
+    axis.title = element_text(size = 14, margin = margin(r = 20)),
+    strip.text = element_blank()) +
+  scale_fill_manual(values = c("#7F3B08", "#FEE0B6", "#FDB863", "#E08214"), name = NULL, labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +
+  scale_y_continuous(breaks = 23:27, limits = c(NA, 27), expand = expansion(mult = c(0.01, 0.05)), 
+  labels = label_number(width = 6, zero.print = TRUE)) + 
+   labs(x = "Fractional cover (%)",
+        y = "Average annual mean \n temperature (°C)",
+        #y = expression(atop("Average annual mean", paste("temperature (", degree, "C·yr"^-1, ")")))
+        ) +
+  # Adicionando os asteriscos
+  geom_text(data = significance_positions, 
+            aes(x = x_pos, y = asterisk_y, label = "*"),
+            size = 3, color = "red")
+
+p_ast_temp_w
+
+# Salvando a figura
+ggsave("fig/area_x_temp_pf_sf_significant_asterisco_wilcoxon.png", dpi = 600, width = 9, height = 5.5)
+
+gc()
+
+```
+
+## Painel all variables - observation
+
+```{r}
+
+# Ajuste das margens
+p_ret_prec_w <- p_ast_prec_w + 
+  scale_x_discrete(expand = c(0.05, 0.05)) + 
+  theme(plot.margin = margin(t = 10, r = 10, b = 5, l = 20))  # Ajuste de margens
+
+p_ret_evapo_w <- p_ast_evapo_w + 
+  scale_x_discrete(expand = c(0.05, 0.05)) + 
+  theme(plot.margin = margin(t = 5, r = 10, b = 5, l = 20))   # Ajuste de margens
+
+p_ret_temp_w <- p_ast_temp_w + 
+  scale_x_discrete(expand = c(0.05, 0.05)) + 
+  theme(plot.margin = margin(t = 5, r = 10, b = 10, l = 20))  # Ajuste de margens
+
+
+# Criar painel com espaçamento ajustado
+painel_obs <- ggarrange(
+  p_ret_prec_w, p_ret_evapo_w, p_ret_temp_w,
+  ncol = 1, nrow = 3,
+  labels = c("A", "B", "C"),  # Letras dos subplots
+  font.label = list(color = "black", face = "bold", size = 14, family = "serif"),
+  align = "v",                # Alinhamento vertical
+  heights = c(1, 1, 1)        # Força os plots a terem alturas iguais
+)
+
+# Salvar figura final
+ggsave("fig/painels/painel_fraction_forest_x_prec.png", 
+       plot = painel_obs, dpi = 600, width = 10, height = 12, bg = "white")
+
+ggsave("fig/painels/painel_fraction_forest_x_prec.pdf", 
+       plot = painel_obs, width = 10, height = 12, bg = "white")
+
+```
+
+# Modeling
+
+```{r}
+
+library(lme4)
+library(performance)
+library(readxl)
+library(tidyverse)
+library(dplyr)
+library(cowplot)
+library(DHARMa)
+library(writexl)
+library(merTools)
+library(lmtest)
+library(patchwork)
+library(emmeans)
+library(stringr)
+library(DescTools)
+library(openxlsx)
+library(lmerTest)
+library(broom.mixed)
+library(clubSandwich)
+library(nlme) 
+library(DHARMa)
+library(scales)
+library(grid)
+library(extrafont)
+font_import()           
+loadfonts(device = "pdf")
+
+```
+
+# Model
+
+## PRECIPITATION
+
+### Model choice
+
+```{r}
+
+# Leitura dos dados agrupados por Ano x Tipo x Region x Fração de Área
+all_pf_sf_prec_model = read_xlsx("data_group/plan_data_group_prec.xlsx")
+
+# Definindo a ordem correta das categorias
+ord_ff   <- c("1-10","10-20","20-30","30-40","40-50","50-60","60-70","70-80","80-90","90-100")
+lev_tipo <- c("PF","SF_early","SF_intermediate","SF_advanced")
+
+# Recodifica como fatores na ordem correta
+recode_fac <- function(d){
+  d %>%
+    mutate(
+      ff_area = factor(ff_area, levels = ord_ff, ordered = TRUE),
+      Tipo    = factor(Tipo,    levels = lev_tipo)
+    )
+}
+
+# Separa por região e aplica a recodificação
+model_cba_prec <- all_pf_sf_prec_model %>% filter(region == "CBA") %>% recode_fac()
+model_eba_prec <- all_pf_sf_prec_model %>% filter(region == "EBA") %>% recode_fac()
+model_sba_prec <- all_pf_sf_prec_model %>% filter(region == "SBA") %>% recode_fac()
+
+# Cria um identificador para cada estrato
+add_estrato <- function(d){
+  d$estrato_id <- interaction(d$region, d$ff_area, d$Tipo, drop = TRUE)
+  d
+}
+
+model_cba_prec <- add_estrato(model_cba_prec)
+model_eba_prec <- add_estrato(model_eba_prec)
+model_sba_prec <- add_estrato(model_sba_prec)
+
+```
+
+##### Observações - Tipo x Fraction cover
+
+```{r}
+
+# labeller "SI" compatível com várias versões de {scales}
+si_labeller <- function(accuracy = 0.1) {
+  if ("cut_si" %in% getNamespaceExports("scales")) {
+    label_number(accuracy = accuracy, scale_cut = cut_si(""))
+  } else if ("cut_short_scale" %in% getNamespaceExports("scales")) {
+    label_number(accuracy = accuracy, scale_cut = cut_short_scale())
+  } else {
+    label_comma(accuracy = accuracy)
+  }
+}
+
+plot_nobs_heat <- function(dat, region_name,
+                           agg = c("sum"),       
+                           use_si_labels = TRUE,
+                           text_size = 2.5,
+                           family = "serif",
+                           fill_limits = NULL,   
+                           fill_breaks = NULL) {
+
+  agg <- match.arg(agg)
+
+  dat_reg <- dat %>%
+    dplyr::filter(region == region_name) %>%
+    dplyr::group_by(region, ff_area, Tipo) %>%
+    dplyr::summarise(
+      n_obs = switch(agg,
+                     sum    = sum(n_obs, na.rm = TRUE),
+                     mean   = mean(n_obs, na.rm = TRUE),
+                     median = median(n_obs, na.rm = TRUE)),
+      .groups = "drop"
+    ) %>%
+    dplyr::mutate(
+      logn   = log10(pmax(n_obs, 1L)),
+      n_lab  = if (use_si_labels) si_labeller(accuracy = 0.1)(n_obs) else scales::comma(n_obs),
+      txt_col = ifelse(logn >= median(logn, na.rm = TRUE), "black", "white")
+    )
+
+  ggplot(dat_reg, aes(ff_area, Tipo, fill = logn)) +
+    geom_tile(color = "white") +
+    geom_text(aes(label = n_lab, color = txt_col),
+              size = text_size, family = family, fontface = "bold") +
+    scale_color_identity(guide = "none") +
+    scale_fill_viridis_c(
+      name   = expression(log[10](n[obs])),
+      limits = fill_limits,               
+      breaks = fill_breaks,               
+      oob = scales::squish                
+    ) +
+    scale_y_discrete(
+    labels = c(
+      "PF"             = "PF",
+      "SF_early"       = "SF early",
+      "SF_intermediate"= "SF intermediate",
+      "SF_advanced"    = "SF advanced"
+    )
+  ) +
+    ggthemes::theme_few() +
+    theme(
+      text = element_text(size = 10, face = "bold", family = "serif"),
+      axis.text.x = element_text(size = 10, angle = 45, hjust = 1, vjust = 1)
+    ) +
+    labs(
+      title = paste(region_name, ""),
+      x = "Fractional cover (%)",
+      y = ""
+    )
+}
+
+# Mesma legenda para todos
+common_limits <- c(2, 8)
+common_breaks <- seq(2, 8, by = 2)
+
+p_nobs_cba <- plot_nobs_heat(model_cba_prec, "CBA", agg = "sum",
+                             fill_limits = common_limits, fill_breaks = common_breaks)
+p_nobs_eba <- plot_nobs_heat(model_eba_prec, "EBA", agg = "sum",
+                             fill_limits = common_limits, fill_breaks = common_breaks)
+p_nobs_sba <- plot_nobs_heat(model_sba_prec, "SBA", agg = "sum",
+                             fill_limits = common_limits, fill_breaks = common_breaks)
+
+# Plot
+
+# --- CBA: esconder eixo-x mas manter o espaço; centralizar título; margens iguais
+p_nobs_cba <- p_nobs_cba +
+  labs(x = "Fractional cover (%)") +                      
+  theme(
+    axis.title.x = element_text(colour = NA),            
+    axis.ticks.x = element_blank(),                       
+    plot.title   = element_text(hjust = 0.5),
+    plot.margin  = margin(1, 1, 1, 1)                    
+  )
+
+# --- EBA: idem ao CBA
+p_nobs_eba <- p_nobs_eba +
+  labs(x = "Fractional cover (%)") +
+  theme(
+    axis.title.x = element_text(colour = NA),
+    axis.ticks.x = element_blank(),
+    plot.title   = element_text(hjust = 0.5),
+    plot.margin  = margin(1, 1, 1, 1)
+  )
+
+# --- SBA: eixo-x visível; mesmas margens e título centralizado
+p_nobs_sba <- p_nobs_sba +
+  theme(
+    plot.title  = element_text(hjust = 0.5),
+    plot.margin = margin(1, 1, 1, 1)
+  )
+
+# Monta o painel com uma legenda comum
+painel_log <- ggpubr::ggarrange(
+  p_nobs_cba, p_nobs_eba, p_nobs_sba,
+  ncol = 1, nrow = 3,
+  align = "v",
+  common.legend = TRUE, legend = "right"
+)
+painel_log
+
+ggsave("fig/n_obs.png", width = 8, height = 6, dpi = 400, bg = "white")
+
+```
+
+### Fixed effect 
+
+```{r}
+
+# CBA
+model_CBA_prec_w1 <- lmer(Prec ~ ff_area*Tipo + (1|Ano),
+                          data = model_cba_prec)
+
+# EBA
+model_EBA_prec_w1 <- lmer(Prec ~ ff_area*Tipo + (1|Ano),
+                          data = model_eba_prec)
+
+# SBA
+model_SBA_prec_w1 <- lmer(Prec ~ ff_area*Tipo + (1|Ano),
+                          data = model_sba_prec)
+
+# Coeficientes fixos
+broom.mixed::tidy(model_CBA_prec_w1, effects="fixed")
+broom.mixed::tidy(model_EBA_prec_w1, effects="fixed")
+broom.mixed::tidy(model_SBA_prec_w1, effects="fixed")
+
+```
+
+#### R-square for Linear Mixed Model (LMM)
+
+```{r}
+
+# ---- Helpers coerentes com o ajuste ----
+weighted_mean <- function(y, w) sum(w*y)/sum(w)
+r2_w_sse <- function(y, yhat, w) {
+  sst <- sum(w * (y - weighted_mean(y, w))^2)
+  ssr <- sum(w * (y - yhat)^2)
+  1 - ssr/sst
+}
+
+# R² ponderado "marginal" (fixos) e "condicional" (fixos + RE) 
+r2_lmer_w <- function(m, dat, resp = "Prec", type = c("marg","cond")) {
+  type <- match.arg(type)
+  w <- as.numeric(weights(m))           
+  y <- dat[[resp]]
+  yhat <- if (type == "marg") predict(m, re.form = ~0) else predict(m, re.form = NULL)
+  r2_w_sse(y, yhat, w)
+}
+
+# Calcular R² ponderado (fixo e cond.) para os modelos principais (w1 = sqrt(n_obs))
+r2_cba_prec <- c(
+  R2_marg_w = r2_lmer_w(model_CBA_prec_w1, model_cba_prec, type="marg"),
+  R2_cond_w = r2_lmer_w(model_CBA_prec_w1, model_cba_prec, type="cond")
+)
+r2_eba_prec <- c(
+  R2_marg_w = r2_lmer_w(model_EBA_prec_w1, model_eba_prec, type="marg"),
+  R2_cond_w = r2_lmer_w(model_EBA_prec_w1, model_eba_prec, type="cond")
+)
+r2_sba_prec <- c(
+  R2_marg_w = r2_lmer_w(model_SBA_prec_w1, model_sba_prec, type="marg"),
+  R2_cond_w = r2_lmer_w(model_SBA_prec_w1, model_sba_prec, type="cond")
+)
+
+r2_cba_prec; r2_eba_prec; r2_sba_prec
+
+# Exportar (opcional)
+r2_tbl <- tibble::tibble(
+  region = c("CBA","EBA","SBA"),
+  R2_marg_w = c(r2_cba_prec["R2_marg_w"], r2_eba_prec["R2_marg_w"], r2_sba_prec["R2_marg_w"]),
+  R2_cond_w = c(r2_cba_prec["R2_cond_w"], r2_eba_prec["R2_cond_w"], r2_sba_prec["R2_cond_w"])
+)
+writexl::write_xlsx(r2_tbl, "data_group/r2_weighted_prec.xlsx")
+
+```
+
+
+```{r}
+
+# Ajuste múltiplo BH para comparações por faixa.
+# specs = ~ Tipo | ff_area --> Dentro de cada faixa de cobertura, PF e SF têm precipitação diferente?
+emm_CBA <- emmeans(model_CBA_prec_w1, specs = ~ Tipo | ff_area, lmer.df = "satterthwaite")
+pairs(emm_CBA, by = "ff_area", adjust = "BH")
+
+emm_EBA <- emmeans(model_EBA_prec_w1, specs = ~ Tipo | ff_area, lmer.df = "satterthwaite")
+pairs(emm_EBA, by = "ff_area", adjust = "BH")
+
+emm_SBA <- emmeans(model_SBA_prec_w1, specs = ~ Tipo | ff_area, lmer.df = "satterthwaite")
+pairs(emm_SBA, by = "ff_area", adjust = "BH")
+
+```
+
+##### Heterocedasticidade
+
+```{r}
+
+# Função: resíduos normalizados vs n_obs, com controle de eixos
+plot_resid_hetero <- function(m_lme, dat, region_name,
+                              show_x_lab = TRUE,
+                              show_y_lab = TRUE) {
+  rn <- residuals(m_lme, type = "response")
+  ggplot(data.frame(n_obs = dat$n_obs, rnorm = rn),
+         aes(n_obs, rnorm)) +
+    geom_point(alpha = .35) +
+    geom_smooth(method = "loess", se = FALSE) +
+    geom_hline(yintercept = 0, lty = 2, col = "grey40") +
+    scale_x_log10() +
+    ggthemes::theme_few() +
+    theme(
+      text = element_text(size = 12, face = "bold", family = "serif"),
+      plot.title = element_text(hjust = 0.5)  
+    ) +
+    labs(
+      title = region_name,
+      #x = if (show_x_lab) expression(n[obs]~"(log scale)") else NULL,  
+      x = if (show_x_lab) "" else NULL,
+      y = if (show_y_lab) "Residuals" else NULL             
+    )
+}
+
+# Monta cada painel com as regras pedidas:
+# - CBA: só Y
+p_het_cba <- plot_resid_hetero(model_CBA_prec_w1, model_cba_prec, "CBA",
+                               show_x_lab = FALSE, show_y_lab = TRUE)
+
+# - EBA: só X
+p_het_eba <- plot_resid_hetero(model_EBA_prec_w1, model_eba_prec, "EBA",
+                               show_x_lab = TRUE, show_y_lab = FALSE)
+
+# - SBA: sem X e sem Y
+p_het_sba <- plot_resid_hetero(model_SBA_prec_w1, model_sba_prec, "SBA",
+                               show_x_lab = FALSE, show_y_lab = FALSE)
+
+# Painel 1x3
+painel_het_prec <- ggpubr::ggarrange(p_het_cba, p_het_eba, p_het_sba,
+                                     ncol = 3, nrow = 1, align = "hv")
+
+painel_het_prec
+
+ggsave("fig/supplemental_material/hetero_residuals_lme_prec.png", width=8, height=6, dpi=400, bg="white")
+
+```
+
+##### QQ Plot
+
+```{r}
+
+qq_lme <- function(m, region_name, show_y_title = FALSE){
+  rn <- residuals(m, type = "response")
+  ggplot(data.frame(rn=rn), aes(sample = rn)) +
+    stat_qq() + stat_qq_line() +
+    ggthemes::theme_few() +
+    theme(
+      text = element_text(size = 12, face = "bold", family = "serif"),
+      plot.title = element_text(size = 12, face = "bold", hjust = 0.5), # <- aqui
+      axis.title.y = if (show_y_title) element_text() else element_blank()
+    ) +
+    labs(title = region_name, x = "", y = if (show_y_title) "Sample quantiles" else NULL)
+}
+
+# y apenas no primeiro (CBA)
+qq_cba <- qq_lme(model_CBA_prec_w1, "CBA", show_y_title = TRUE)
+qq_eba <- qq_lme(model_EBA_prec_w1, "EBA", show_y_title = FALSE)
+qq_sba <- qq_lme(model_SBA_prec_w1, "SBA", show_y_title = FALSE)
+
+painel_qq_prec <- ggarrange(qq_cba, qq_eba, qq_sba, ncol = 3, nrow = 1, align = "hv")
+
+painel_qq_prec
+
+ggsave("fig/supplemental_material/qqplot_prec.png", bg = "white",
+       dpi = 600, width = 8, height = 6)
+
+```
+
+#### CCC de Lins
+
+```{r}
+
+## CBA
+
+# Obter os valores observados e previstos
+observado_cba_prec <- model_cba_prec$Prec
+previsto_cba_prec  <- predict(model_CBA_prec_w1)
+
+ccc_result_cba_prec  <- CCC(observado_cba_prec , previsto_cba_prec )
+ccc_val_cba_prec <- round(ccc_result_cba_prec$rho.c[, "est"], 3)
+
+
+## EBA
+
+# Obter os valores observados e previstos
+observado_eba_prec <- model_eba_prec$Prec
+previsto_eba_prec  <- predict(model_EBA_prec_w1)
+
+ccc_result_eba_prec  <- CCC(observado_eba_prec , previsto_eba_prec )
+ccc_val_eba_prec <- round(ccc_result_eba_prec$rho.c[, "est"], 3)
+
+## SBA
+
+# Obter os valores observados e previstos
+observado_sba_prec <- model_sba_prec$Prec
+previsto_sba_prec  <- predict(model_SBA_prec_w1)
+
+ccc_result_sba_prec  <- CCC(observado_sba_prec , previsto_sba_prec )
+ccc_val_sba_prec <- round(ccc_result_sba_prec$rho.c[, "est"], 3)
+
+```
+
+#### Efeitos para cada ff_area e classe florestal
+
+```{r}
+
+# Intervalos p/ plot “em_all”
+em_df_cba <- as.data.frame(emm_CBA); em_df_cba$region <- "CBA"
+em_df_eba <- as.data.frame(emm_EBA); em_df_eba$region <- "EBA"
+em_df_sba <- as.data.frame(emm_SBA); em_df_sba$region <- "SBA"
+
+em_all <- bind_rows(em_df_cba, em_df_eba, em_df_sba) %>%
+  mutate(
+    ff_area = factor(ff_area, levels = c("1-10","10-20","20-30","30-40",
+                                         "40-50","50-60","60-70","70-80","80-90","90-100")),
+    Tipo    = factor(Tipo,    levels = c("PF","SF_early","SF_intermediate","SF_advanced"))
+  )
+
+# Comparações dentro de cada faixa (matriz / pwpm)
+em_cba_pw <- emmeans(model_CBA_prec_w1, ~ Tipo | ff_area, lmer.df = "satterthwaite")
+em_eba_pw <- emmeans(model_EBA_prec_w1, ~ Tipo | ff_area, lmer.df = "satterthwaite")
+em_sba_pw <- emmeans(model_SBA_prec_w1, ~ Tipo | ff_area, lmer.df = "satterthwaite")
+
+pwpm(em_cba_pw, sort = FALSE)
+pwpm(em_eba_pw, sort = FALSE)
+pwpm(em_sba_pw, sort = FALSE)
+
+# Exportar matriz como data.frame
+pw_cba_df <- as.data.frame(pwpm(em_cba_pw, sort = FALSE))
+pw_eba_df <- as.data.frame(pwpm(em_eba_pw, sort = FALSE))
+pw_sba_df <- as.data.frame(pwpm(em_sba_pw, sort = FALSE))
+pw_df <- bind_rows(pw_cba_df, pw_eba_df, pw_sba_df)
+
+openxlsx::write.xlsx(pw_df, file = "data_group/matriz_contrastes_pwpm_prec.xlsx", rowNames = TRUE)
+
+# Tabela final - análises
+tabela_estilo_fig1 <- em_all %>%
+  mutate(
+    Tipo = factor(Tipo, levels = c("PF","SF_early","SF_intermediate","SF_advanced"))
+  ) %>%
+  rename(
+    Region   = region,
+    Cover    = Tipo,
+    Effect   = emmean,
+    Interval = ff_area,
+    CI_lower = lower.CL,
+    CI_upper = upper.CL
+  ) %>%
+  mutate(
+    Variable = "PREC",
+    Cover = factor(Cover, levels = c("PF","SF_early","SF_intermediate","SF_advanced")),
+    Interval = factor(Interval, levels = c("1-10","10-20","20-30","30-40","40-50",
+                                           "50-60","60-70","70-80","80-90","90-100"))
+  ) %>%
+  arrange(Region, Cover, Interval) %>%
+  dplyr::select(Region, Cover, Variable, Effect, Interval, CI_lower, CI_upper)
+
+openxlsx::write.xlsx(
+  tabela_estilo_fig1,
+  file = "data_group/emmeans_intervalos_prec.xlsx",
+  rowNames = FALSE
+)
+
+# Tabela final - SI
+
+# Preparar tabela base
+t2 <- em_all %>%
+  mutate(
+    Cover = factor(Tipo, levels = c("PF","SF_early","SF_intermediate","SF_advanced")),
+    Interval = factor(ff_area, levels = c("1-10","10-20","20-30","30-40",
+                                          "40-50","50-60","60-70","70-80",
+                                          "80-90","90-100"))
+  ) %>%
+  dplyr::select(region, Interval, Cover,
+         Effect = emmean,
+         CI_lower = lower.CL,
+         CI_upper = upper.CL)
+
+# Reorganizar para formato largo (larger table like Figure 2)
+tabela_fig2 <- t2 %>%
+  arrange(Interval, Cover) %>%
+  tidyr::pivot_wider(
+    names_from = region,
+    values_from = c(Effect, CI_lower, CI_upper),
+    names_glue = "{region}_{.value}"
+  ) %>%
+  arrange(Interval, Cover)
+
+openxlsx::write.xlsx(
+  tabela_fig2,
+  file = "data_group/emmeans_intervalos_prec_table_final.xlsx",
+  rowNames = FALSE
+)
+
+```
+
+#### Constrastes e significancia
+
+```{r}
+
+get_contrasts <- function(model, region_name) {
+  em <- emmeans(model, ~ ff_area*Tipo, lmer.df = "satterthwaite")
+  contrast_res <- contrast(em, method = "revpairwise", by = "ff_area", adjust = "fdr")
+  df <- as.data.frame(contrast_res)
+  df$region <- region_name
+  df
+}
+
+contrast_CBA_df <- get_contrasts(model_CBA_prec_w1, "CBA")
+contrast_EBA_df <- get_contrasts(model_EBA_prec_w1, "EBA")
+contrast_SBA_df <- get_contrasts(model_SBA_prec_w1, "SBA")
+
+all_contrasts <- bind_rows(contrast_CBA_df, contrast_EBA_df, contrast_SBA_df) %>%
+  filter(grepl("PF", contrast) & grepl("SF_", contrast)) %>%
+  tidyr::separate(contrast, into = c("tipo1", "tipo2"), sep = " - ") %>%
+  filter((tipo1 == "PF" & tipo2 %in% c("SF_early","SF_intermediate","SF_advanced")) |
+         (tipo2 == "PF" & tipo1 %in% c("SF_early","SF_intermediate","SF_advanced"))) %>%
+  mutate(
+    ff_area = factor(ff_area, levels = c("1-10","10-20","20-30","30-40",
+                                         "40-50","50-60","60-70","70-80","80-90","90-100")),
+    tipo_sf = if_else(tipo1 == "PF", tipo2, tipo1),
+    tipo_sf = factor(tipo_sf, levels = c("SF_early","SF_intermediate","SF_advanced")),
+    estimate = if_else(tipo1 == "PF", estimate, -estimate),  # garantir PF − SF
+    sig_label = ifelse(p.value < 0.05, "*", "")
+  )
+
+writexl::write_xlsx(all_contrasts, "data_group/contrast_PF_SF_prec.xlsx")
+
+```
+
+### Painel Prec
+
+```{r}
+
+# Plot de pontos
+plot_point_prec <- function(region_name, show_y = TRUE, show_legend = FALSE, show_y_axes = TRUE) {
+  p <- ggplot(filter(em_all, region == region_name) %>%
+    mutate(
+      Tipo = factor(Tipo) %>%
+        fct_relevel("PF", "SF_early", "SF_intermediate", "SF_advanced") %>%
+        fct_recode(
+          "PF" = "PF",
+          "SF early" = "SF_early",
+          "SF intermediate" = "SF_intermediate",
+          "SF advanced" = "SF_advanced"
+        )
+    ),
+    aes(x = ff_area, y = emmean, color = Tipo, group = Tipo)) +
+    geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL),
+                  position = position_dodge(width = 0.8), width = 0.6, size = 0.5) +
+    geom_point(position = position_dodge(width = 0.8), size = 1.5) +
+    ggthemes::theme_few() +
+    theme(
+      text = element_text(size = 12, face = "bold", family = "serif"),
+      legend.position = if (show_legend) "right" else "none",
+      legend.title = element_blank(),
+      legend.background = element_rect(fill = "transparent"),
+      legend.text = element_text(size = 10),
+      axis.text = element_text(size = 10, face = "plain", family = "serif", color = "black"),
+      axis.text.x = element_blank(),
+      #axis.text.x = element_text(size = 10, angle = 45, hjust = 1, vjust = 1),
+      axis.text.y = if (show_y_axes) element_text(size = 10) else element_blank(),
+      axis.title.y = if (show_y) element_text(size = 14, margin = margin(r = -20)) else element_blank(),
+      axis.title.x = element_blank(),
+      strip.text = element_text(size = 14, face = "bold", family = "serif"),
+      plot.margin = margin(2, 2, 2, 2)
+    ) +
+    scale_color_manual(values = c("midnightblue", "#87CEFA", "#1E90FF", "#0000FF")) +
+    scale_y_continuous(limits = c(1800, 2800), breaks = seq(1800, 2800, by = 200)) +
+    #labs(y = if (show_y) "Precipitation\nfixed effects (mm·yr⁻¹)" else NULL) +
+    labs(y = if (show_y) expression(bold(atop("Estimated marginal mean", "precipitation (mm·yr"^{-1}*")"))) else NULL) 
+  
+  return(p)
+}
+
+# Atualizar ordem dos fatores e renomear os labels
+all_contrasts <- all_contrasts %>%
+  mutate(
+    tipo_sf = factor(tipo_sf, levels = c("SF_early", "SF_intermediate", "SF_advanced")),
+    tipo_sf_label = fct_recode(tipo_sf,
+                               "SF early" = "SF_early",
+                               "SF intermediate" = "SF_intermediate",
+                               "SF advanced" = "SF_advanced")
+  )
+
+
+# Criar coluna categórica para estimate
+all_contrasts <- all_contrasts %>%
+  mutate(
+    estimate_cat = factor(
+      cut(estimate,
+          breaks = c(-Inf, 100, 200, Inf),
+          labels = c("<100", "100 to 200", ">200")
+      ),
+      levels = c("<100", "100 to 200", ">200")
+    )
+  )
+
+# Heatmap de contrastes
+plot_heat_prec <- function(region_name, show_legend = FALSE, show_y_labels = TRUE) {
+  ggplot(filter(all_contrasts, region == region_name), 
+         aes(x = ff_area, y = tipo_sf_label, fill = estimate_cat)) +
+    geom_tile(color = "white", height = 0.7) +
+    geom_text(aes(label = sig_label), size = 3, color = "black", family = "serif") +
+    scale_fill_manual(values = c("<100" = "#92C5DE", "100 to 200" = "#4393C3", ">200" = "#2166AC"),
+                      limits = c("<100", "100 to 200", ">200"),
+                      drop = FALSE,
+                      name = bquote(bold(atop(Delta~"Prec (PF − SF)", "(mm)")))
+    )+
+    ggthemes::theme_few() +
+    theme(
+      text = element_text(size = 12, face = "bold", family = "serif"),
+      axis.text.x = element_blank(),
+      axis.title = element_blank(),
+      axis.text.y = if (show_y_labels) element_text(size = 10, face = "plain", family = "serif", color = "black") else element_blank(),
+      legend.position = if (show_legend) "right" else "none",
+      legend.title = element_text(size = 10, face = "bold", family = "serif"),
+      legend.text = element_text(size = 10),
+      plot.title = element_text(hjust = 0.5, size = 14, face = "bold", family = "serif"),
+      strip.text = element_text(size = 14, face = "bold", family = "serif"),
+      plot.margin = margin(2, 2, 2, 2)
+    ) +
+    labs(title = region_name)
+}
+
+# Combinar gráficos para cada região
+panel_CBA_prec <- plot_heat_prec("CBA", show_legend = FALSE, show_y_labels = TRUE) /
+             plot_point_prec("CBA", show_y = TRUE, show_legend = FALSE, show_y_axes = TRUE)
+panel_CBA_prec <- panel_CBA_prec + plot_layout(heights = c(0.2, 0.8))
+
+panel_EBA_prec <- plot_heat_prec("EBA", show_legend = FALSE, show_y_labels = FALSE) /
+             plot_point_prec("EBA", show_y = FALSE, show_legend = FALSE, show_y_axes = FALSE)
+panel_EBA_prec <- panel_EBA_prec + plot_layout(heights = c(0.2, 0.8))
+
+panel_SBA_prec <- plot_heat_prec("SBA", show_legend = TRUE, show_y_labels = FALSE) /
+             plot_point_prec("SBA", show_y = FALSE, show_legend = TRUE, show_y_axes = FALSE)
+panel_SBA_prec <- panel_SBA_prec + plot_layout(heights = c(0.2, 0.8))
+
+# Combinar todos os painéis horizontalmente
+final_panel_prec <- (panel_CBA_prec | panel_EBA_prec | panel_SBA_prec)
+
+# Exibir painel final
+final_panel_prec
+
+# Salvar
+ggsave("fig/em_fixed_fixed_prec.png",
+       plot = final_panel_prec,
+       bg = "white", dpi = 600, width = 9, height = 5.5)
+
+gc()
+
+```
+
+#### Todos os constraste entre frações de área
+
+```{r}
+
+# Lista de modelos
+modelos <- list(CBA = model_CBA_prec_w1, EBA = model_EBA_prec_w1, SBA = model_SBA_prec_w1)
+
+# Função para gerar todos os contrastes PF - SF
+get_all_contrasts <- function(model, region_name) {
+  em <- emmeans(model, ~ ff_area * Tipo)
+  contrast_res <- contrast(em, method = "revpairwise", adjust = "fdr")
+  df <- as.data.frame(contrast_res)
+  df$region <- region_name
+  return(df)
+}
+
+# Aplicar para todas as regiões
+all_contrasts_sup <- purrr::map2_dfr(modelos, names(modelos), get_all_contrasts)
+
+str(all_contrasts_sup)
+
+# Extrair contrastes entre PF e SF
+sf_levels <- c("SF_early", "SF_intermediate", "SF_advanced")
+
+all_contrasts_sup <- all_contrasts_sup %>%
+  filter(str_detect(contrast, "PF") & str_detect(contrast, "SF_"))
+
+# Extrair informações usando regex
+# Regex para capturar (faixa tipo) - (faixa tipo)
+extr <- str_match(all_contrasts_sup$contrast,
+                  "\\(([^ ]+) ([^)]+)\\) - \\(([^ ]+) ([^)]+)\\)")
+
+# Adicionar colunas extraídas
+all_contrasts_sup <- all_contrasts_sup %>%
+  mutate(
+    faixa1 = extr[, 2],
+    tipo1 = extr[, 3],
+    faixa2 = extr[, 4],
+    tipo2 = extr[, 5]
+  ) %>%
+  filter((tipo1 == "PF" & tipo2 %in% sf_levels) | (tipo2 == "PF" & tipo1 %in% sf_levels)) %>%
+  mutate(
+    faixa_PF = if_else(tipo1 == "PF", faixa1, faixa2),
+    faixa_SF = if_else(tipo1 == "PF", faixa2, faixa1),
+    tipo_SF  = if_else(tipo1 == "PF", tipo2, tipo1),
+    estimate = if_else(tipo1 == "PF", estimate, -estimate),  # garantir PF - SF
+    sig_label = ifelse(p.value < 0.05, "*", "")
+  )
+
+# Ajustar fatores
+faixas_niveis <- c("1-10", "10-20", "20-30", "30-40", "40-50",
+                   "50-60", "60-70", "70-80", "80-90", "90-100")
+
+sf_levels <- c("SF_early", "SF_intermediate", "SF_advanced")
+
+all_contrasts_sup <- all_contrasts_sup %>%
+  mutate(
+    faixa_PF = factor(faixa_PF, levels = faixas_niveis),
+    faixa_SF = factor(faixa_SF, levels = faixas_niveis),
+    tipo_SF  = factor(tipo_SF,  levels = sf_levels)
+  )
+
+
+# Classificação mantendo sinal
+all_contrasts_sup <- all_contrasts_sup %>%
+   mutate(
+    tipo_SF = fct_recode(tipo_SF,
+                         "SF early" = "SF_early",
+                         "SF intermediate" = "SF_intermediate",
+                         "SF advanced" = "SF_advanced")
+  ) %>% 
+  mutate(
+    estimate_class = case_when(
+      estimate < 0 ~ "<0",
+      estimate >= 0 & estimate < 100 ~ "0-100",
+      estimate >= 100 & estimate < 200 ~ "100–200",
+      estimate >= 200 & estimate < 300 ~ "200–300",
+      estimate >= 300 ~ ">300"
+    ),
+    estimate_class = factor(estimate_class, levels = c("<0", "0-100", "100–200", "200–300", ">300"))
+  )
+
+
+# Plot
+heatmap_all_contrasts <- ggplot(all_contrasts_sup, 
+                        aes(x = faixa_SF, y = faixa_PF, fill = estimate_class)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = sig_label), color = "black", size = 3, family = "serif") +
+  scale_fill_manual(values = c(
+    "<0" = "#F4A582",
+    "0-100" = "#92C5DE",
+    "100–200" = "#4393C3",
+    "200–300" = "#2166AC",
+    ">300" = "#053061"
+  ), name = expression(bold(atop(Delta~"Prec (PF - SF)", "(mm)"))))+
+  facet_grid(tipo_SF ~ region) +
+  theme_minimal(base_family = "serif") +
+  theme(
+    text = element_text(size = 12, face = "bold", family = "serif"),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text = element_text(size = 12, face = "bold"),
+    axis.text = element_text(size = 10, face = "plain", family = "serif", color = "black")
+  ) +
+   labs(x = "SF fractional cover (%)",
+        y = "PF fractional cover (%)")
+
+heatmap_all_contrasts
+
+# Salvar
+ggsave("fig/supplemental_material/contrastes_fixed_efects_prec.png", width = 10, height = 8, dpi = 600, bg = "white")
+
+ggsave("fig/supplemental_material/contrastes_fixed_efects_prec.pdf", width = 10, height = 8, bg = "white")
+
+gc()
+
+```
+
+### Random effect
+
+```{r}
+
+# Função para extrair efeitos aleatórios com IC por região
+extract_random_effects <- function(model, region_name) {
+  # Efeitos aleatórios com variância condicional
+  ran <- ranef(model, condVar = TRUE)
+  
+  # Extrair efeitos por ano
+  ran_df <- as.data.frame(ran$Ano)
+  names(ran_df) <- "effect"
+  ran_df$ano <- rownames(ran$Ano)
+  
+  # Intervalos de confiança (erro padrão)
+  se <- attr(ran$Ano, "postVar")[1, 1, ] |> sqrt()
+  
+  ran_df <- ran_df %>%
+    mutate(
+      se = se,
+      lower = effect - 1.96 * se,
+      upper = effect + 1.96 * se,
+      region = region_name
+    )
+  
+  return(ran_df)
+}
+
+# Aplicar para os três modelos (substitua pelos seus objetos reais)
+random_cba <- extract_random_effects(model_CBA_prec_w1, "CBA")
+random_eba <- extract_random_effects(model_EBA_prec_w1, "EBA")
+random_sba <- extract_random_effects(model_SBA_prec_w1, "SBA")
+
+# Combinar tudo
+random_all <- bind_rows(random_cba, random_eba, random_sba)
+
+# Garantir que o ano seja ordenável
+random_all$ano <- as.numeric(as.character(random_all$ano))
+
+# Salvar
+write_xlsx(random_all, "data_group/random_effects_prec.xlsx")
+
+```
+
+##### Plot
+
+```{r}
+
+# Plot
+p1_rand_prec <- ggplot(random_all, aes(x = ano, y = effect)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray40") +
+  geom_bar(stat = "identity", position = "dodge", alpha = 0.8, fill = "#1E90FF") +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.5, color = "black") +
+  facet_wrap(~region, scales = "free_x") +
+  scale_x_continuous(breaks = seq(2001, 2021, by = 2)) + 
+  ggthemes::theme_few() +
+    theme(
+      text = element_text(size = 12, face = "bold", family = "serif"),
+      axis.text = element_text(size = 10, face = "plain", family = "serif", color = "black"),
+      #axis.text.x = element_text(angle = 45, hjust = 1),
+      axis.text.x = element_blank(),
+      axis.title = element_text(size = 14),
+      strip.text = element_text(face = "bold", size = 13)) +
+  labs(
+    x = "",
+    y = expression(bold(atop("Precipitation", "random effects (mm·yr"^{-1}*")")))
+  )
+
+p1_rand_prec
+
+ggsave("fig/histogram_random_prec.png", bg = "white", dpi = 600, width = 9, height = 5.5)
+
+```
+
+### Predicted
+
+##### Plot
+
+```{r}
+
+model_cba_prec$predicted <- predict(model_CBA_prec_w1, model_cba_prec)
+model_eba_prec$predicted <- predict(model_EBA_prec_w1, model_eba_prec)
+model_sba_prec$predicted <- predict(model_SBA_prec_w1, model_sba_prec)
+
+r2_cba_prec_lab <- r2_lmer_w(model_CBA_prec_w1, model_cba_prec, type = "cond")
+r2_eba_prec_lab <- r2_lmer_w(model_EBA_prec_w1, model_eba_prec, type = "cond")
+r2_sba_prec_lab <- r2_lmer_w(model_SBA_prec_w1, model_sba_prec, type = "cond")
+
+
+all_vals <- c(model_cba_prec$Prec, model_cba_prec$predicted,
+              model_eba_prec$Prec, model_eba_prec$predicted,
+              model_sba_prec$Prec, model_sba_prec$predicted)
+
+rng     <- range(all_vals, na.rm = TRUE)
+pad     <- 0.02 * diff(rng)
+lim_min <- floor((rng[1] - pad) / 300) * 300
+lim_max <- ceiling((rng[2] - pad)  / 300) * 300
+brks    <- seq(lim_min, lim_max, by = 300)
+
+# Função base do gráfico (escala 1:1 e linha 45°)
+make_plot <- function(dat, titulo, subtitulo){
+  ggplot(dat, aes(Prec, predicted)) +
+    geom_point(size = 2, alpha = .7, na.rm = TRUE) +
+    geom_smooth(method = "lm", se = FALSE, color = "orange", na.rm = TRUE) +
+    geom_abline(slope = 1, intercept = 0, linetype = 2, color = "grey40") +
+    scale_x_continuous(limits = c(lim_min, lim_max), breaks = brks,
+                       expand = expansion(mult = 0.01)) +  
+    scale_y_continuous(limits = c(lim_min, lim_max), breaks = brks,
+                       expand = expansion(mult = 0.01)) +
+    theme_minimal() +
+    labs(
+      x = "Observed\nprecipitation (mm·yr⁻¹)",
+      y = "Predicted\nprecipitation (mm·yr⁻¹)",  # mostra o eixo y em TODOS
+      title = titulo,
+      subtitle = subtitulo
+    )
+}
+
+```
+
+##### Painel
+
+```{r}
+
+# Plots
+cba_pf <- make_plot(model_cba_prec, "", paste0("R² = ", round(r2_cba_prec_lab, 3), " | CCC = ", ccc_val_cba_prec))
+eba_pf <- make_plot(model_eba_prec, "", paste0("R² = ", round(r2_eba_prec_lab, 3), " | CCC = ", ccc_val_eba_prec)) + labs(y = NULL)
+sba_pf <- make_plot(model_sba_prec, "", paste0("R² = ", round(r2_sba_prec_lab, 3), " | CCC = ", ccc_val_sba_prec)) + labs(y = NULL)
+
+# Painel
+p1_pred_prec <- (cba_pf + eba_pf + sba_pf) +
+  patchwork::plot_layout(ncol = 3, nrow = 1, guides = "collect") +
+  theme(
+    text = element_text(size = 12, face = "bold", family = "serif"),
+    axis.text  = element_text(size = 10, face = "plain", family = "serif"),
+    axis.text.x = element_text(size = 10, angle = 45, hjust = 1, vjust = 1, family = "serif")
+  )
+
+p1_pred_prec
+
+ggsave("fig/supplemental_material/predicted_observed_prec.png", bg = "white", dpi = 600, width = 9, height = 7.5)
+
+
+```
+
+### Model plotting
+
+#### CBA
+
+```{r}
+
+# Atribuindo os dados
+model_cba_all_prec <- model_cba_prec %>%
+  mutate(
+    area = as.integer(ff_area),             
+    vegetation = as.character(Tipo),         
+    predicted = predict(model_CBA_prec_w1)  
+  )
+
+# Reordenar níveis (se quiser controlar a legenda)
+model_cba_all_prec <- model_cba_all_prec %>%
+  mutate(vegetation = factor(vegetation,
+                             levels = c("PF","SF_early","SF_intermediate","SF_advanced")))
+
+
+model_cba_all_prec[model_cba_all_prec$ff_area== "1-10",
+                     c("area")]<-1
+model_cba_all_prec[model_cba_all_prec$ff_area== "10-20",
+                     c("area")]<-2
+model_cba_all_prec[model_cba_all_prec$ff_area== "20-30",
+                     c("area")]<-3
+model_cba_all_prec[model_cba_all_prec$ff_area== "30-40",
+                     c("area")]<-4
+model_cba_all_prec[model_cba_all_prec$ff_area== "40-50",
+                     c("area")]<-5
+model_cba_all_prec[model_cba_all_prec$ff_area== "50-60",
+                     c("area")]<-6
+model_cba_all_prec[model_cba_all_prec$ff_area== "60-70",
+                     c("area")]<-7
+model_cba_all_prec[model_cba_all_prec$ff_area== "70-80",
+                     c("area")]<-8
+model_cba_all_prec[model_cba_all_prec$ff_area== "80-90",
+                     c("area")]<-9
+model_cba_all_prec[model_cba_all_prec$ff_area== "90-100",
+                     c("area")]<-10
+
+model_cba_all_prec[model_cba_all_prec$type== 1,
+                     c("vegetation")]<-"PF"
+model_cba_all_prec[model_cba_all_prec$type== 2,
+                     c("vegetation")]<-"SF_early"
+model_cba_all_prec[model_cba_all_prec$type== 3,
+                     c("vegetation")]<-"SF_intermediate"
+model_cba_all_prec[model_cba_all_prec$type== 4,
+                     c("vegetation")]<-"SF_advanced"
+
+```
+
+```{r}
+
+# Reordenar os níveis de 'Tipo'
+model_cba_all_prec <- model_cba_all_prec %>%
+  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_early", "SF_intermediate", "SF_advanced")))
+
+
+m1_prec_cba <- model_cba_all_prec %>%
+  ggplot(aes(x = area * 10, y = Prec, color = vegetation)) +  # Define 'color' no aes
+  theme_bw() +
+  geom_point(size = 1, alpha = 0.7) +  # Ajusta tamanho e transparência dos pontos
+  geom_line(aes(y = predicted, group = vegetation), size = 1) +  # Mantém cor no grupo
+  scale_color_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
+                     name = NULL,  
+                     labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +  
+  scale_fill_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
+                    name = NULL,  
+                    labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +  
+  facet_wrap(~Ano, nrow = 4, ncol = 6) +
+  scale_y_continuous(breaks = seq(1800, 2700, by = 300)) +
+  ggthemes::theme_few() +
+  labs(x = "Fractional forest coverage (%)", 
+       y = "Predicted precipitation (mm·yr⁻¹) - CBA",
+       color = "") +
+  theme(legend.position = "top",
+        text = element_text(family = "serif"),
+        axis.title = element_text(size = 16, face = "bold"),
+        strip.text = element_text(face = "bold", size = 12),
+        legend.text = element_text(size = 14, face = "bold"),  
+        legend.title = element_text(face = "bold", size = 14),
+        plot.title = element_text(size = 14, face = "bold", hjust = 0.5),  # Centraliza título
+        axis.text = element_text(size = 12))
+
+m1_prec_cba
+
+ggsave("fig/supplemental_material/predicted_prec_CBA.png", bg = "white",
+       dpi = 600, width = 10, height = 8)
+
+```
+
+#### EBA
+
+```{r}
+
+# Atribuindo os dados
+model_eba_all_prec <- model_eba_prec %>%
+  mutate(
+    area = as.integer(ff_area),             
+    vegetation = as.character(Tipo),         
+    predicted = predict(model_EBA_prec_w1)  
+  )
+
+# Reordenar níveis (se quiser controlar a legenda)
+model_eba_all_prec <- model_eba_all_prec %>%
+  mutate(vegetation = factor(vegetation,
+                             levels = c("PF","SF_early","SF_intermediate","SF_advanced")))
+
+model_eba_all_prec[model_eba_all_prec$ff_area== "1-10",
+                     c("area")]<-1
+model_eba_all_prec[model_eba_all_prec$ff_area== "10-20",
+                     c("area")]<-2
+model_eba_all_prec[model_eba_all_prec$ff_area== "20-30",
+                     c("area")]<-3
+model_eba_all_prec[model_eba_all_prec$ff_area== "30-40",
+                     c("area")]<-4
+model_eba_all_prec[model_eba_all_prec$ff_area== "40-50",
+                     c("area")]<-5
+model_eba_all_prec[model_eba_all_prec$ff_area== "50-60",
+                     c("area")]<-6
+model_eba_all_prec[model_eba_all_prec$ff_area== "60-70",
+                     c("area")]<-7
+model_eba_all_prec[model_eba_all_prec$ff_area== "70-80",
+                     c("area")]<-8
+model_eba_all_prec[model_eba_all_prec$ff_area== "80-90",
+                     c("area")]<-9
+model_eba_all_prec[model_eba_all_prec$ff_area== "90-100",
+                     c("area")]<-10
+
+model_eba_all_prec[model_eba_all_prec$type== 1,
+                     c("vegetation")]<-"PF"
+model_eba_all_prec[model_eba_all_prec$type== 2,
+                     c("vegetation")]<-"SF_early"
+model_eba_all_prec[model_eba_all_prec$type== 3,
+                     c("vegetation")]<-"SF_intermediate"
+model_eba_all_prec[model_eba_all_prec$type== 4,
+                     c("vegetation")]<-"SF_advanced"
+
+```
+
+```{r}
+
+# Reordenar os níveis de 'Tipo'
+model_eba_all_prec <- model_eba_all_prec %>%
+  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_early", "SF_intermediate", "SF_advanced")))
+
+
+m1_prec_eba <- model_eba_all_prec %>%
+  ggplot(aes(x = area * 10, y = Prec, color = vegetation)) +  # Define 'color' no aes
+  theme_bw() +
+  geom_point(size = 1, alpha = 0.7) +  # Ajusta tamanho e transparência dos pontos
+  geom_line(aes(y = predicted, group = vegetation), size = 1) +  # Mantém cor no grupo
+  scale_color_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
+                     name = NULL,  
+                     labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +  
+  scale_fill_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
+                    name = NULL,  
+                    labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +
+  scale_y_continuous(breaks = seq(1700, 2600, by = 300)) +
+  ggthemes::theme_few() +
+  facet_wrap(~Ano, nrow = 4, ncol = 6) +
+  labs(x = "Fractional forest coverage (%)", 
+       y = "Predicted precipitation (mm·yr⁻¹) - EBA",
+       color = "") +
+  theme(legend.position = "top",
+        text = element_text(family = "serif"),
+        axis.title = element_text(size = 16, face = "bold"),
+        strip.text = element_text(face = "bold", size = 12),
+        legend.text = element_text(size = 14, face = "bold"),  
+        legend.title = element_text(face = "bold", size = 14),
+        plot.title = element_text(size = 14, face = "bold", hjust = 0.5),  # Centraliza título
+        axis.text = element_text(size = 12))
+
+m1_prec_eba
+
+ggsave("fig/supplemental_material/predicted_prec_EBA.png", bg = "white",
+       dpi = 600, width = 10, height = 8)
+
+```
+
+#### SBA
+
+```{r}
+
+# Atribuindo os dados
+model_sba_all_prec <- model_sba_prec %>%
+  mutate(
+    area = as.integer(ff_area),             
+    vegetation = as.character(Tipo),         
+    predicted = predict(model_SBA_prec_w1)  
+  )
+
+# Reordenar níveis (se quiser controlar a legenda)
+model_sba_all_prec <- model_sba_all_prec %>%
+  mutate(vegetation = factor(vegetation,
+                             levels = c("PF","SF_early","SF_intermediate","SF_advanced")))
+
+model_sba_all_prec[model_sba_all_prec$ff_area== "1-10",
+                     c("area")]<-1
+model_sba_all_prec[model_sba_all_prec$ff_area== "10-20",
+                     c("area")]<-2
+model_sba_all_prec[model_sba_all_prec$ff_area== "20-30",
+                     c("area")]<-3
+model_sba_all_prec[model_sba_all_prec$ff_area== "30-40",
+                     c("area")]<-4
+model_sba_all_prec[model_sba_all_prec$ff_area== "40-50",
+                     c("area")]<-5
+model_sba_all_prec[model_sba_all_prec$ff_area== "50-60",
+                     c("area")]<-6
+model_sba_all_prec[model_sba_all_prec$ff_area== "60-70",
+                     c("area")]<-7
+model_sba_all_prec[model_sba_all_prec$ff_area== "70-80",
+                     c("area")]<-8
+model_sba_all_prec[model_sba_all_prec$ff_area== "80-90",
+                     c("area")]<-9
+model_sba_all_prec[model_sba_all_prec$ff_area== "90-100",
+                     c("area")]<-10
+
+model_sba_all_prec[model_sba_all_prec$type== 1,
+                     c("vegetation")]<-"PF"
+model_sba_all_prec[model_sba_all_prec$type== 2,
+                     c("vegetation")]<-"SF_early"
+model_sba_all_prec[model_sba_all_prec$type== 3,
+                     c("vegetation")]<-"SF_intermediate"
+model_sba_all_prec[model_sba_all_prec$type== 4,
+                     c("vegetation")]<-"SF_advanced"
+
+```
+
+```{r}
+
+# Reordenar os níveis de 'Tipo'
+model_sba_all_prec <- model_sba_all_prec %>%
+  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_early", "SF_intermediate", "SF_advanced")))
+
+m1_prec_sba <- model_sba_all_prec %>%
+  ggplot(aes(x = area*10, y = Prec))+
+  theme_bw()+
+  geom_point(aes(x = area*10, y = Prec, color = vegetation)) + 
+  geom_line(aes(y = predicted, group = vegetation, color = vegetation), size = 1)+
+    scale_color_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
+                     name = NULL,  
+                     labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +  
+    scale_fill_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
+                    name = NULL,  
+                    labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +
+  scale_y_continuous(breaks = seq(1600, 2500, by = 300)) +
+  ggthemes::theme_few() +
+  facet_wrap(~Ano, nrow = 4, ncol = 6) +
+  labs(x = "Fractional forest coverage (%)", 
+       y = "Predicted precipitation (mm·yr⁻¹) - SBA",
+       color = "") +
+  theme(legend.position = "top",
+        text = element_text(family = "serif"),
+        axis.title = element_text(size = 16, face = "bold"),
+        strip.text = element_text(face = "bold", size = 12),
+        legend.text = element_text(size = 14, face = "bold"),  # Tamanho do texto da legenda
+        legend.title = element_text(face = "bold", size = 14),
+        plot.title = element_text(size = 14, face = "bold", hjust = 0.5),  # Centraliza título
+        axis.text = element_text(size = 12))
+
+m1_prec_sba
+
+ggsave("fig/supplemental_material/predicted_prec_SBA.png", bg = "white",
+       dpi = 600, width = 10, height = 8)
+
+```
+
+## EVAPOTRANSPIRATION
+
+### Model choice
+
+```{r}
+
+# Leitura dos dados agrupados por Ano x Tipo x Region x Fração de Área
+all_pf_sf_evapo_model = read_xlsx("data_group/plan_data_group_evapo.xlsx")
+
+# Definindo a ordem correta das categorias
+ord_ff   <- c("1-10","10-20","20-30","30-40","40-50","50-60","60-70","70-80","80-90","90-100")
+lev_tipo <- c("PF","SF_early","SF_intermediate","SF_advanced")
+
+# Recodifica como fatores na ordem correta
+recode_fac <- function(d){
+  d %>%
+    mutate(
+      ff_area = factor(ff_area, levels = ord_ff, ordered = TRUE),
+      Tipo    = factor(Tipo,    levels = lev_tipo)
+    )
+}
+
+# Separa por região e aplica a recodificação
+model_cba_evapo <- all_pf_sf_evapo_model %>% filter(region == "CBA") %>% recode_fac()
+model_eba_evapo <- all_pf_sf_evapo_model %>% filter(region == "EBA") %>% recode_fac()
+model_sba_evapo <- all_pf_sf_evapo_model %>% filter(region == "SBA") %>% recode_fac()
+
+# Cria um identificador para cada estrato
+add_estrato <- function(d){
+  d$estrato_id <- interaction(d$region, d$ff_area, d$Tipo, drop = TRUE)
+  d
+}
+
+model_cba_evapo <- add_estrato(model_cba_evapo)
+model_eba_evapo <- add_estrato(model_eba_evapo)
+model_sba_evapo <- add_estrato(model_sba_evapo)
+
+```
+
+### Fixed effect 
+
+```{r}
+
+# CBA
+model_CBA_evapo_w1 <- lmer(Evapo ~ ff_area*Tipo + (1|Ano),
+                          data = model_cba_evapo)
+
+# EBA
+model_EBA_evapo_w1 <- lmer(Evapo ~ ff_area*Tipo + (1|Ano),
+                          data = model_eba_evapo)
+
+
+# SBA
+model_SBA_evapo_w1 <- lmer(Evapo ~ ff_area*Tipo + (1|Ano),
+                          data = model_sba_evapo)
+
+
+# Conferir coeficientes fixos rapidamente
+broom.mixed::tidy(model_CBA_evapo_w1, effects="fixed")
+broom.mixed::tidy(model_EBA_evapo_w1, effects="fixed")
+broom.mixed::tidy(model_SBA_evapo_w1, effects="fixed")
+
+```
+
+#### R-square for Linear Mixed Model (LMM)
+
+```{r}
+
+# ---- Helpers coerentes com o ajuste ----
+weighted_mean <- function(y, w) sum(w*y)/sum(w)
+r2_w_sse <- function(y, yhat, w) {
+  sst <- sum(w * (y - weighted_mean(y, w))^2)
+  ssr <- sum(w * (y - yhat)^2)
+  1 - ssr/sst
+}
+
+# R² ponderado "marginal" (fixos) e "condicional" (fixos + RE) 
+r2_lmer_w <- function(m, dat, resp = "Evapo", type = c("marg","cond")) {
+  type <- match.arg(type)
+  w <- as.numeric(weights(m))            
+  y <- dat[[resp]]
+  yhat <- if (type == "marg") predict(m, re.form = ~0) else predict(m, re.form = NULL)
+  r2_w_sse(y, yhat, w)
+}
+
+# Calcular R² ponderado (fixo e cond.) para os modelos principais (w1 = sqrt(n_obs))
+r2_cba_evapo <- c(
+  R2_marg_w = r2_lmer_w(model_CBA_evapo_w1, model_cba_evapo, type="marg"),
+  R2_cond_w = r2_lmer_w(model_CBA_evapo_w1, model_cba_evapo, type="cond")
+)
+r2_eba_evapo <- c(
+  R2_marg_w = r2_lmer_w(model_EBA_evapo_w1, model_eba_evapo, type="marg"),
+  R2_cond_w = r2_lmer_w(model_EBA_evapo_w1, model_eba_evapo, type="cond")
+)
+r2_sba_evapo <- c(
+  R2_marg_w = r2_lmer_w(model_SBA_evapo_w1, model_sba_evapo, type="marg"),
+  R2_cond_w = r2_lmer_w(model_SBA_evapo_w1, model_sba_evapo, type="cond")
+)
+
+r2_cba_evapo; r2_eba_evapo; r2_sba_evapo
+
+# Exportar (opcional)
+r2_tbl <- tibble::tibble(
+  region = c("CBA","EBA","SBA"),
+  R2_marg_w = c(r2_cba_evapo["R2_marg_w"], r2_eba_evapo["R2_marg_w"], r2_sba_evapo["R2_marg_w"]),
+  R2_cond_w = c(r2_cba_evapo["R2_cond_w"], r2_eba_evapo["R2_cond_w"], r2_sba_evapo["R2_cond_w"])
+)
+writexl::write_xlsx(r2_tbl, "data_group/r2_weighted_evapo.xlsx")
+
+```
+
+
+```{r}
+
+# Ajuste múltiplo BH para comparações por faixa.
+emm_CBA <- emmeans(model_CBA_evapo_w1, specs = ~ Tipo | ff_area, lmer.df = "satterthwaite")
+pairs(emm_CBA, by = "ff_area", adjust = "BH")
+
+emm_EBA <- emmeans(model_EBA_evapo_w1, specs = ~ Tipo | ff_area, lmer.df = "satterthwaite")
+pairs(emm_EBA, by = "ff_area", adjust = "BH")
+
+emm_SBA <- emmeans(model_SBA_evapo_w1, specs = ~ Tipo | ff_area, lmer.df = "satterthwaite")
+pairs(emm_SBA, by = "ff_area", adjust = "BH")
+
+```
+
+##### Heterocedasticidade
+
+```{r}
+
+# Função: resíduos normalizados vs n_obs, com controle de eixos
+plot_resid_hetero <- function(m_lme, dat, region_name,
+                              show_x_lab = TRUE,
+                              show_y_lab = TRUE) {
+  rn <- residuals(m_lme, type = "response")
+  ggplot(data.frame(n_obs = dat$n_obs, rnorm = rn),
+         aes(n_obs, rnorm)) +
+    geom_point(alpha = .35) +
+    geom_smooth(method = "loess", se = FALSE) +
+    geom_hline(yintercept = 0, lty = 2, col = "grey40") +
+    scale_x_log10() +
+    ggthemes::theme_few() +
+    theme(
+      text = element_text(size = 12, face = "bold", family = "serif"),
+      plot.title = element_text(hjust = 0.5)  
+    ) +
+    labs(
+      #title = region_name,
+      #x = if (show_x_lab) expression(n[obs]~"(log scale)") else NULL,  
+      x = if (show_x_lab) "" else NULL,
+      y = if (show_y_lab) "Residuals" else NULL             
+    )
+}
+
+# Monta cada painel com as regras pedidas:
+# - CBA: só Y
+p_het_cba <- plot_resid_hetero(model_CBA_evapo_w1, model_cba_evapo, "CBA",
+                               show_x_lab = FALSE, show_y_lab = TRUE)
+
+# - EBA: só X
+p_het_eba <- plot_resid_hetero(model_EBA_evapo_w1, model_eba_evapo, "EBA",
+                               show_x_lab = TRUE, show_y_lab = FALSE)
+
+# - SBA: sem X e sem Y
+p_het_sba <- plot_resid_hetero(model_SBA_evapo_w1, model_sba_evapo, "SBA",
+                               show_x_lab = FALSE, show_y_lab = FALSE)
+
+# Painel 1x3
+painel_het_evapo <- ggpubr::ggarrange(p_het_cba, p_het_eba, p_het_sba,
+                                     ncol = 3, nrow = 1, align = "hv")
+
+painel_het_evapo
+
+ggsave("fig/supplemental_material/hetero_residuals_lme_evapo.png", width=8, height=6, dpi=400, bg="white")
+
+```
+
+##### QQ PLOT
+
+```{r}
+
+qq_lme <- function(m, region_name, show_y_title = FALSE){
+  rn <- residuals(m, type = "response")
+  ggplot(data.frame(rn=rn), aes(sample = rn)) +
+    stat_qq() + stat_qq_line() +
+    ggthemes::theme_few() +
+    theme(
+      text = element_text(size = 12, face = "bold", family = "serif"),
+      plot.title = element_text(size = 12, face = "bold", hjust = 0.5), # <- aqui
+      axis.title.y = if (show_y_title) element_text() else element_blank()
+    ) +
+    labs(title = region_name, x = "", y = if (show_y_title) "Sample quantiles" else NULL)
+}
+
+# y apenas no primeiro 
+qq_cba <- qq_lme(model_CBA_evapo_w1, "", show_y_title = TRUE)
+qq_eba <- qq_lme(model_EBA_evapo_w1, "", show_y_title = FALSE)
+qq_sba <- qq_lme(model_SBA_evapo_w1, "", show_y_title = FALSE)
+
+painel_qq_evapo <- ggarrange(qq_cba, qq_eba, qq_sba, ncol = 3, nrow = 1, align = "hv")
+
+painel_qq_evapo
+
+ggsave("fig/supplemental_material/qqplot_evapo.png", bg = "white",
+       dpi = 600, width = 8, height = 6)
+
+```
+
+#### CCC de Lins
+
+```{r}
+
+## CBA
+
+# Obter os valores observados e previstos
+observado_cba_evapo <- model_cba_evapo$Evapo
+previsto_cba_evapo  <- predict(model_CBA_evapo_w1)
+
+ccc_result_cba_evapo  <- CCC(observado_cba_evapo , previsto_cba_evapo )
+ccc_val_cba_evapo <- round(ccc_result_cba_evapo$rho.c[, "est"], 3)
+
+
+## EBA
+
+# Obter os valores observados e previstos
+observado_eba_evapo <- model_eba_evapo$Evapo
+previsto_eba_evapo  <- predict(model_EBA_evapo_w1)
+
+ccc_result_eba_evapo  <- CCC(observado_eba_evapo , previsto_eba_evapo )
+ccc_val_eba_evapo <- round(ccc_result_eba_evapo$rho.c[, "est"], 3)
+
+## SBA
+
+# Obter os valores observados e previstos
+observado_sba_evapo <- model_sba_evapo$Evapo
+previsto_sba_evapo  <- predict(model_SBA_evapo_w1)
+
+ccc_result_sba_evapo  <- CCC(observado_sba_evapo , previsto_sba_evapo )
+ccc_val_sba_evapo <- round(ccc_result_sba_evapo$rho.c[, "est"], 3)
+
+```
+
+#### Efeitos para cada ff_area e classe florestal
+
+```{r}
+
+# Intervalos p/ plot “em_all”
+em_df_cba <- as.data.frame(emm_CBA); em_df_cba$region <- "CBA"
+em_df_eba <- as.data.frame(emm_EBA); em_df_eba$region <- "EBA"
+em_df_sba <- as.data.frame(emm_SBA); em_df_sba$region <- "SBA"
+
+em_all <- bind_rows(em_df_cba, em_df_eba, em_df_sba) %>%
+  mutate(
+    ff_area = factor(ff_area, levels = c("1-10","10-20","20-30","30-40",
+                                         "40-50","50-60","60-70","70-80","80-90","90-100")),
+    Tipo    = factor(Tipo,    levels = c("PF","SF_early","SF_intermediate","SF_advanced"))
+  )
+
+# Comparações dentro de cada faixa (matriz / pwpm)
+em_cba_pw <- emmeans(model_CBA_evapo_w1, ~ Tipo | ff_area, lmer.df = "satterthwaite")
+em_eba_pw <- emmeans(model_EBA_evapo_w1, ~ Tipo | ff_area, lmer.df = "satterthwaite")
+em_sba_pw <- emmeans(model_SBA_evapo_w1, ~ Tipo | ff_area, lmer.df = "satterthwaite")
+
+pwpm(em_cba_pw, sort = FALSE)
+pwpm(em_eba_pw, sort = FALSE)
+pwpm(em_sba_pw, sort = FALSE)
+
+# Exportar matriz como data.frame
+pw_cba_df <- as.data.frame(pwpm(em_cba_pw, sort = FALSE))
+pw_eba_df <- as.data.frame(pwpm(em_eba_pw, sort = FALSE))
+pw_sba_df <- as.data.frame(pwpm(em_sba_pw, sort = FALSE))
+pw_df <- bind_rows(pw_cba_df, pw_eba_df, pw_sba_df)
+
+openxlsx::write.xlsx(pw_df, file = "data_group/matriz_contrastes_pwpm_evapo.xlsx", rowNames = TRUE)
+
+# Tabela final - análises
+tabela_estilo_fig1 <- em_all %>%
+  mutate(
+    Tipo = factor(Tipo, levels = c("PF","SF_early","SF_intermediate","SF_advanced"))
+  ) %>%
+  rename(
+    Region   = region,
+    Cover    = Tipo,
+    Effect   = emmean,
+    Interval = ff_area,
+    CI_lower = lower.CL,
+    CI_upper = upper.CL
+  ) %>%
+  mutate(
+    Variable = "EVAPO",
+    Cover = factor(Cover, levels = c("PF","SF_early","SF_intermediate","SF_advanced")),
+    Interval = factor(Interval, levels = c("1-10","10-20","20-30","30-40","40-50",
+                                           "50-60","60-70","70-80","80-90","90-100"))
+  ) %>%
+  arrange(Region, Cover, Interval) %>%
+  dplyr::select(Region, Cover, Variable, Effect, Interval, CI_lower, CI_upper)
+
+openxlsx::write.xlsx(
+  tabela_estilo_fig1,
+  file = "data_group/emmeans_intervalos_evapo.xlsx",
+  rowNames = FALSE
+)
+
+# Tabela final - SI
+
+# Preparar tabela base
+t2 <- em_all %>%
+  mutate(
+    Cover = factor(Tipo, levels = c("PF","SF_early","SF_intermediate","SF_advanced")),
+    Interval = factor(ff_area, levels = c("1-10","10-20","20-30","30-40",
+                                          "40-50","50-60","60-70","70-80",
+                                          "80-90","90-100"))
+  ) %>%
+  dplyr::select(region, Interval, Cover,
+         Effect = emmean,
+         CI_lower = lower.CL,
+         CI_upper = upper.CL)
+
+# Reorganizar para formato largo (larger table like Figure 2)
+tabela_fig2 <- t2 %>%
+  arrange(Interval, Cover) %>%
+  tidyr::pivot_wider(
+    names_from = region,
+    values_from = c(Effect, CI_lower, CI_upper),
+    names_glue = "{region}_{.value}"
+  ) %>%
+  arrange(Interval, Cover)
+
+openxlsx::write.xlsx(
+  tabela_fig2,
+  file = "data_group/emmeans_intervalos_evapo_table_final.xlsx",
+  rowNames = FALSE
+)
+
+```
+
+#### Constrastes e significancia
+
+```{r}
+
+get_contrasts <- function(model, region_name) {
+  em <- emmeans(model, ~ ff_area*Tipo, lmer.df = "satterthwaite")
+  contrast_res <- contrast(em, method = "revpairwise", by = "ff_area", adjust = "fdr")
+  df <- as.data.frame(contrast_res)
+  df$region <- region_name
+  df
+}
+
+contrast_CBA_df <- get_contrasts(model_CBA_evapo_w1, "CBA")
+contrast_EBA_df <- get_contrasts(model_EBA_evapo_w1, "EBA")
+contrast_SBA_df <- get_contrasts(model_SBA_evapo_w1, "SBA")
+
+all_contrasts <- bind_rows(contrast_CBA_df, contrast_EBA_df, contrast_SBA_df) %>%
+  filter(grepl("PF", contrast) & grepl("SF_", contrast)) %>%
+  tidyr::separate(contrast, into = c("tipo1", "tipo2"), sep = " - ") %>%
+  filter((tipo1 == "PF" & tipo2 %in% c("SF_early","SF_intermediate","SF_advanced")) |
+         (tipo2 == "PF" & tipo1 %in% c("SF_early","SF_intermediate","SF_advanced"))) %>%
+  mutate(
+    ff_area = factor(ff_area, levels = c("1-10","10-20","20-30","30-40",
+                                         "40-50","50-60","60-70","70-80","80-90","90-100")),
+    tipo_sf = if_else(tipo1 == "PF", tipo2, tipo1),
+    tipo_sf = factor(tipo_sf, levels = c("SF_early","SF_intermediate","SF_advanced")),
+    estimate = if_else(tipo1 == "PF", estimate, -estimate),  # garantir PF − SF
+    sig_label = ifelse(p.value < 0.05, "*", "")
+  )
+
+writexl::write_xlsx(all_contrasts, "data_group/contrast_PF_SF_evapo.xlsx")
+
+```
+
+### Painel Evapo
+
+```{r}
+
+# Plot de pontos
+plot_point_evapo <- function(region_name, show_y = TRUE, show_legend = FALSE, show_y_axes = TRUE) {
+  p <- ggplot(filter(em_all, region == region_name) %>%
+    mutate(
+      Tipo = factor(Tipo) %>%
+        fct_relevel("PF", "SF_early", "SF_intermediate", "SF_advanced") %>%
+        fct_recode(
+          "PF" = "PF",
+          "SF early" = "SF_early",
+          "SF intermediate" = "SF_intermediate",
+          "SF advanced" = "SF_advanced"
+        )
+    ),
+    aes(x = ff_area, y = emmean, color = Tipo, group = Tipo)) +
+    geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL),
+                  position = position_dodge(width = 0.8), width = 0.6, size = 0.5) +
+    geom_point(position = position_dodge(width = 0.8), size = 1.5) +
+    ggthemes::theme_few() +
+    theme(
+      text = element_text(size = 12, face = "bold", family = "serif"),
+      legend.position = if (show_legend) "right" else "none",
+      legend.title = element_blank(),
+      legend.background = element_rect(fill = "transparent"),
+      legend.text = element_text(size = 10),
+      axis.text = element_text(size = 10, face = "plain", family = "serif", color = "black"),
+      axis.text.x = element_blank(),
+      #axis.text.x = element_text(size = 10, angle = 45, hjust = 1, vjust = 1),
+      axis.text.y = if (show_y_axes) element_text(size = 10) else element_blank(),
+      axis.title.y = if (show_y) element_text(size = 14, margin = margin(r = -20)) else element_blank(),
+      axis.title.x = element_blank(),
+      strip.text = element_text(size = 14, face = "bold", family = "serif"),
+      plot.margin = margin(2, 2, 2, 2)
+    ) +
+    scale_color_manual(values = c("#02401B", "lightgreen", "green1", "green4")) +
+    scale_y_continuous(limits = c(1200, 1700), breaks = seq(1200, 1700, by = 100)) +
+    #labs(y = if (show_y) "Evapotranspiration\nfixed effects (mm·yr⁻¹)" else NULL) +
+    labs(y = if (show_y) expression(bold(atop("Estimated marginal mean", "evapotranspiration (mm·yr"^{-1}*")"))) else NULL)
+  
+  return(p)
+}
+
+# Atualizar ordem dos fatores e renomear os labels
+all_contrasts <- all_contrasts %>%
+  mutate(
+    tipo_sf = factor(tipo_sf, levels = c("SF_early", "SF_intermediate", "SF_advanced")),
+    tipo_sf_label = fct_recode(tipo_sf,
+                               "SF early" = "SF_early",
+                               "SF intermediate" = "SF_intermediate",
+                               "SF advanced" = "SF_advanced")
+  )
+
+
+# Criar coluna categórica para estimate
+all_contrasts <- all_contrasts %>%
+  mutate(
+    estimate_cat = factor(
+      cut(estimate,
+          breaks = c(-Inf, -30, 0, Inf),
+          labels = c("<−30", "−30 to 0", ">0")
+      ),
+      levels = c("<−30", "−30 to 0", ">0")
+    )
+  )
+
+# Heatmap de contrastes
+plot_heat_evapo <- function(region_name, show_legend = FALSE, show_y_labels = TRUE) {
+  ggplot(filter(all_contrasts, region == region_name), 
+         aes(x = ff_area, y = tipo_sf_label, fill = estimate_cat)) +
+    geom_tile(color = "white", height = 0.7) +
+    geom_text(aes(label = sig_label), size = 3, color = "black", family = "serif") +
+    scale_fill_manual(
+      values = c("<−30" = "#D6604D", "−30 to 0" = "#F4A582", ">0" = "#92C5DE"),
+      limits = c("<−30", "−30 to 0", ">0"),
+      drop = FALSE,
+      name = bquote(bold(atop(Delta~"ET (PF − SF)", "(mm)")))
+    )+
+    ggthemes::theme_few() +
+    theme(
+      text = element_text(size = 12, face = "bold", family = "serif"),
+      axis.text.x = element_blank(),
+      axis.title = element_blank(),
+      axis.text.y = if (show_y_labels) element_text(size = 10, face = "plain", family = "serif", color = "black") else element_blank(),
+      legend.position = if (show_legend) "right" else "none",
+      legend.title = element_text(size = 10, face = "bold", family = "serif"),
+      legend.text = element_text(size = 10),
+      plot.title = element_text(hjust = 0.5, size = 14, face = "bold", family = "serif"),
+      strip.text = element_text(size = 14, face = "bold", family = "serif"),
+      plot.margin = margin(2, 2, 2, 2)
+    ) +
+    labs(title = "")
+}
+
+# Combinar gráficos para cada região
+panel_CBA_evapo <- plot_heat_evapo("CBA", show_legend = FALSE, show_y_labels = TRUE) /
+             plot_point_evapo("CBA", show_y = TRUE, show_legend = FALSE, show_y_axes = TRUE)
+panel_CBA_evapo <- panel_CBA_evapo + plot_layout(heights = c(0.2, 0.8))
+
+panel_EBA_evapo <- plot_heat_evapo("EBA", show_legend = FALSE, show_y_labels = FALSE) /
+             plot_point_evapo("EBA", show_y = FALSE, show_legend = FALSE, show_y_axes = FALSE)
+panel_EBA_evapo <- panel_EBA_evapo + plot_layout(heights = c(0.2, 0.8))
+
+panel_SBA_evapo <- plot_heat_evapo("SBA", show_legend = TRUE, show_y_labels = FALSE) /
+             plot_point_evapo("SBA", show_y = FALSE, show_legend = TRUE, show_y_axes = FALSE)
+panel_SBA_evapo <- panel_SBA_evapo + plot_layout(heights = c(0.2, 0.8))
+
+# Combinar todos os painéis horizontalmente
+final_panel_evapo <- (panel_CBA_evapo | panel_EBA_evapo | panel_SBA_evapo)
+
+# Exibir painel final
+final_panel_evapo
+
+# Salvar
+ggsave("fig/em_fixed_fixed_evapo.png",
+       plot = final_panel_evapo,
+       bg = "white", dpi = 600, width = 9, height = 5.5)
+
+gc()
+
+```
+
+#### Todos os constraste entre frações de área
+
+```{r}
+
+# Lista de modelos
+modelos <- list(CBA = model_CBA_evapo_w1, EBA = model_EBA_evapo_w1, SBA = model_SBA_evapo_w1)
+
+# Função para gerar todos os contrastes PF - SF
+get_all_contrasts <- function(model, region_name) {
+  em <- emmeans(model, ~ ff_area * Tipo)
+  contrast_res <- contrast(em, method = "revpairwise", adjust = "fdr")
+  df <- as.data.frame(contrast_res)
+  df$region <- region_name
+  return(df)
+}
+
+# Aplicar para todas as regiões
+all_contrasts_sup <- purrr::map2_dfr(modelos, names(modelos), get_all_contrasts)
+
+str(all_contrasts_sup)
+
+# Extrair contrastes entre PF e SF
+sf_levels <- c("SF_early", "SF_intermediate", "SF_advanced")
+
+all_contrasts_sup <- all_contrasts_sup %>%
+  filter(str_detect(contrast, "PF") & str_detect(contrast, "SF_"))
+
+# Extrair informações usando regex
+# Regex para capturar (faixa tipo) - (faixa tipo)
+extr <- str_match(all_contrasts_sup$contrast,
+                  "\\(([^ ]+) ([^)]+)\\) - \\(([^ ]+) ([^)]+)\\)")
+
+# Adicionar colunas extraídas
+all_contrasts_sup <- all_contrasts_sup %>%
+  mutate(
+    faixa1 = extr[, 2],
+    tipo1 = extr[, 3],
+    faixa2 = extr[, 4],
+    tipo2 = extr[, 5]
+  ) %>%
+  filter((tipo1 == "PF" & tipo2 %in% sf_levels) | (tipo2 == "PF" & tipo1 %in% sf_levels)) %>%
+  mutate(
+    faixa_PF = if_else(tipo1 == "PF", faixa1, faixa2),
+    faixa_SF = if_else(tipo1 == "PF", faixa2, faixa1),
+    tipo_SF  = if_else(tipo1 == "PF", tipo2, tipo1),
+    estimate = if_else(tipo1 == "PF", estimate, -estimate),  # garantir PF - SF
+    sig_label = ifelse(p.value < 0.05, "*", "")
+  )
+
+# Ajustar fatores
+faixas_niveis <- c("1-10", "10-20", "20-30", "30-40", "40-50",
+                   "50-60", "60-70", "70-80", "80-90", "90-100")
+
+sf_levels <- c("SF_early", "SF_intermediate", "SF_advanced")
+
+all_contrasts_sup <- all_contrasts_sup %>%
+  mutate(
+    faixa_PF = factor(faixa_PF, levels = faixas_niveis),
+    faixa_SF = factor(faixa_SF, levels = faixas_niveis),
+    tipo_SF  = factor(tipo_SF,  levels = sf_levels)
+  )
+
+
+# Classificação mantendo sinal
+all_contrasts_sup <- all_contrasts_sup %>%
+  mutate(
+    tipo_SF = fct_recode(tipo_SF,
+                         "SF early" = "SF_early",
+                         "SF intermediate" = "SF_intermediate",
+                         "SF advanced" = "SF_advanced")
+  ) %>% 
+  mutate(
+    estimate_class = case_when(
+      estimate < -100 ~ "<-100",
+      estimate >= -100 & estimate < 0 ~ "-100–0",
+      estimate >= 0 & estimate < 100 ~ "0–100",
+      estimate >= 100 ~ ">100"
+    ),
+    estimate_class = factor(estimate_class, levels = c("<-100", "-100–0", "0–100", ">100"))
+  )
+
+
+# Plot
+heatmap_all_contrasts <- ggplot(all_contrasts_sup, 
+                        aes(x = faixa_SF, y = faixa_PF, fill = estimate_class)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = sig_label), color = "black", size = 3, family = "serif") +
+  scale_fill_manual(values = c(
+  "<-100" = "#D6604D",
+  "-100–0" = "#F4A582",
+  "0–100" = "#92C5DE",
+  ">100" = "#4393C3"
+), name = expression(bold(atop(Delta~"ET (PF - SF)", "(mm·yr"^{-1}*")"))))+
+  facet_grid(tipo_SF ~ region) +
+  theme_minimal(base_family = "serif") +
+  theme(
+    text = element_text(size = 12, face = "bold", family = "serif"),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text = element_text(size = 12, face = "bold"),
+    axis.text = element_text(size = 10, face = "plain", family = "serif", color = "black")
+  ) +
+   labs(x = "SF fractional cover (%)",
+        y = "PF fractional cover (%)")
+
+heatmap_all_contrasts
+
+# Salvar
+ggsave("fig/supplemental_material/contrastes_fixed_efects_evapo.png", width = 10, height = 8, dpi = 600, bg = "white")
+
+ggsave("fig/supplemental_material/contrastes_fixed_efects_evapo.pdf", width = 10, height = 8, bg = "white")
+
+gc()
+
+
+```
+
+### Random effect
+
+```{r}
+
+# Função para extrair efeitos aleatórios com IC por região
+extract_random_effects <- function(model, region_name) {
+  # Efeitos aleatórios com variância condicional
+  ran <- ranef(model, condVar = TRUE)
+  
+  # Extrair efeitos por ano
+  ran_df <- as.data.frame(ran$Ano)
+  names(ran_df) <- "effect"
+  ran_df$ano <- rownames(ran$Ano)
+  
+  # Intervalos de confiança (erro padrão)
+  se <- attr(ran$Ano, "postVar")[1, 1, ] |> sqrt()
+  
+  ran_df <- ran_df %>%
+    mutate(
+      se = se,
+      lower = effect - 1.96 * se,
+      upper = effect + 1.96 * se,
+      region = region_name
+    )
+  
+  return(ran_df)
+}
+
+# Aplicar para os três modelos (substitua pelos seus objetos reais)
+random_cba <- extract_random_effects(model_CBA_evapo_w1, "CBA")
+random_eba <- extract_random_effects(model_EBA_evapo_w1, "EBA")
+random_sba <- extract_random_effects(model_SBA_evapo_w1, "SBA")
+
+# Combinar tudo
+random_all <- bind_rows(random_cba, random_eba, random_sba)
+
+# Garantir que o ano seja ordenável
+random_all$ano <- as.numeric(as.character(random_all$ano))
+
+# Salvar
+write_xlsx(random_all, "data_group/random_effects_evapo.xlsx")
+
+```
+
+##### Plot
+
+```{r}
+
+# Plot
+p1_rand_evapo <- ggplot(random_all, aes(x = ano, y = effect)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray40") +
+  geom_bar(stat = "identity", position = "dodge", alpha = 0.8, fill = "green1") +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.5, color = "black") +
+  facet_wrap(~region, scales = "free_x") +
+  scale_x_continuous(breaks = seq(2001, 2021, by = 2)) + 
+  ggthemes::theme_few() +
+    theme(
+      text = element_text(size = 12, face = "bold", family = "serif"),
+      axis.text = element_text(size = 10, face = "plain", family = "serif", color = "black"),
+      #axis.text.x = element_text(angle = 45, hjust = 1),
+      axis.text.x = element_blank(),
+      axis.title = element_text(size = 14),
+      #strip.text = element_text(face = "bold", size = 13)) +
+      strip.text = element_blank()) +
+  labs(
+    x = "",
+    y = expression(bold(atop("Evapotranspiration", "random effects (mm·yr"^{-1}*")")))
+  )
+
+p1_rand_evapo
+
+ggsave("fig/histogram_random_evapo.png", bg = "white", dpi = 600, width = 9, height = 5.5)
+
+```
+
+### Predicted
+
+##### Plot
+
+```{r}
+
+model_cba_evapo$predicted <- predict(model_CBA_evapo_w1, model_cba_evapo)
+model_eba_evapo$predicted <- predict(model_EBA_evapo_w1, model_eba_evapo)
+model_sba_evapo$predicted <- predict(model_SBA_evapo_w1, model_sba_evapo)
+
+r2_cba_evapo_lab <- r2_lmer_w(model_CBA_evapo_w1, model_cba_evapo, type = "cond")
+r2_eba_evapo_lab <- r2_lmer_w(model_EBA_evapo_w1, model_eba_evapo, type = "cond")
+r2_sba_evapo_lab <- r2_lmer_w(model_SBA_evapo_w1, model_sba_evapo, type = "cond")
+
+
+all_vals <- c(model_cba_evapo$Evapo, model_cba_evapo$predicted,
+              model_eba_evapo$Evapo, model_eba_evapo$predicted,
+              model_sba_evapo$Evapo, model_sba_evapo$predicted)
+
+rng     <- range(all_vals, na.rm = TRUE)
+pad     <- 0.02 * diff(rng)
+lim_min <- floor((rng[1] - pad)  / 200) * 200
+lim_max <- ceiling((rng[2] - pad)  / 200) * 200
+brks    <- seq(lim_min, lim_max, by = 200)
+
+# Função base do gráfico (escala 1:1 e linha 45°)
+make_plot <- function(dat, titulo, subtitulo){
+  ggplot(dat, aes(Evapo, predicted)) +
+    geom_point(size = 2, alpha = .7, na.rm = TRUE) +
+    geom_smooth(method = "lm", se = FALSE, color = "orange", na.rm = TRUE) +
+    geom_abline(slope = 1, intercept = 0, linetype = 2, color = "grey40") +
+    scale_x_continuous(limits = c(lim_min, lim_max), breaks = brks,
+                       expand = expansion(mult = 0.01)) +  
+    scale_y_continuous(limits = c(lim_min, lim_max), breaks = brks,
+                       expand = expansion(mult = 0.01)) +
+    theme_minimal() +
+    labs(
+      x = "Observed ET (mm·yr⁻¹)",
+      y = "Predicted ET (mm·yr⁻¹)",  # mostra o eixo y em TODOS
+      title = titulo,
+      subtitle = subtitulo
+    )
+}
+
+```
+
+##### Painel
+
+```{r}
+
+# Plots
+cba_pf <- make_plot(model_cba_evapo, "", paste0("R² = ", round(r2_cba_evapo_lab, 3), " | CCC = ", ccc_val_cba_evapo))
+eba_pf <- make_plot(model_eba_evapo, "", paste0("R² = ", round(r2_eba_evapo_lab, 3), " | CCC = ", ccc_val_eba_evapo)) + labs(y = NULL)
+sba_pf <- make_plot(model_sba_evapo, "", paste0("R² = ", round(r2_sba_evapo_lab, 3), " | CCC = ", ccc_val_sba_evapo)) + labs(y = NULL)
+
+
+# Painel
+p2_pred_evapo <- (cba_pf + eba_pf + sba_pf) +
+  patchwork::plot_layout(ncol = 3, nrow = 1, guides = "collect") +
+  theme(
+    text = element_text(size = 12, face = "bold", family = "serif"),
+    axis.text  = element_text(size = 10, face = "plain", family = "serif"),
+    axis.text.x = element_text(size = 10, angle = 45, hjust = 1, vjust = 1, family = "serif")
+  )
+
+p2_pred_evapo
+
+ggsave("fig/supplemental_material/predicted_observed_evapo.png", bg = "white", dpi = 600, width = 12, height = 5.5)
+
+```
+
+### Model plotting
+
+#### CBA
+
+```{r}
+
+# Atribuindo os dados
+model_cba_all_evapo <- model_cba_evapo %>%
+  mutate(
+    area = as.integer(ff_area),             
+    vegetation = as.character(Tipo),         
+    predicted = predict(model_CBA_evapo_w1)  
+  )
+
+# Reordenar níveis (se quiser controlar a legenda)
+model_cba_all_evapo <- model_cba_all_evapo %>%
+  mutate(vegetation = factor(vegetation,
+                             levels = c("PF","SF_early","SF_intermediate","SF_advanced")))
+
+
+model_cba_all_evapo[model_cba_all_evapo$ff_area== "1-10",
+                     c("area")]<-1
+model_cba_all_evapo[model_cba_all_evapo$ff_area== "10-20",
+                     c("area")]<-2
+model_cba_all_evapo[model_cba_all_evapo$ff_area== "20-30",
+                     c("area")]<-3
+model_cba_all_evapo[model_cba_all_evapo$ff_area== "30-40",
+                     c("area")]<-4
+model_cba_all_evapo[model_cba_all_evapo$ff_area== "40-50",
+                     c("area")]<-5
+model_cba_all_evapo[model_cba_all_evapo$ff_area== "50-60",
+                     c("area")]<-6
+model_cba_all_evapo[model_cba_all_evapo$ff_area== "60-70",
+                     c("area")]<-7
+model_cba_all_evapo[model_cba_all_evapo$ff_area== "70-80",
+                     c("area")]<-8
+model_cba_all_evapo[model_cba_all_evapo$ff_area== "80-90",
+                     c("area")]<-9
+model_cba_all_evapo[model_cba_all_evapo$ff_area== "90-100",
+                     c("area")]<-10
+
+model_cba_all_evapo[model_cba_all_evapo$type== 1,
+                     c("vegetation")]<-"PF"
+model_cba_all_evapo[model_cba_all_evapo$type== 2,
+                     c("vegetation")]<-"SF_early"
+model_cba_all_evapo[model_cba_all_evapo$type== 3,
+                     c("vegetation")]<-"SF_intermediate"
+model_cba_all_evapo[model_cba_all_evapo$type== 4,
+                     c("vegetation")]<-"SF_advanced"
+
+```
+
+```{r}
+
+# Reordenar os níveis de 'Tipo'
+model_cba_all_evapo <- model_cba_all_evapo %>%
+  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_early", "SF_intermediate", "SF_advanced")))
+
+
+m1_evapo_cba <- model_cba_all_evapo %>%
+  ggplot(aes(x = area * 10, y = Evapo, color = vegetation)) +  # Define 'color' no aes
+  theme_bw() +
+  geom_point(size = 1, alpha = 0.7) +  # Ajusta tamanho e transparência dos pontos
+  geom_line(aes(y = predicted, group = vegetation), size = 1) +  # Mantém cor no grupo
+  scale_color_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
+                     name = NULL,  
+                     labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +  
+  scale_fill_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
+                    name = NULL,  
+                    labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +  
+  facet_wrap(~Ano, nrow = 4, ncol = 6) +
+  scale_y_continuous(breaks = seq(1200, 1600, by = 100)) +
+  ggthemes::theme_few() +
+  labs(x = "Fractional forest coverage (%)", 
+       y = "Predicted evapotranspiration (mm·yr⁻¹) - CBA",
+       color = "") +
+  theme(legend.position = "top",
+        text = element_text(family = "serif"),
+        axis.title = element_text(size = 16, face = "bold"),
+        strip.text = element_text(face = "bold", size = 12),
+        legend.text = element_text(size = 14, face = "bold"),  
+        legend.title = element_text(face = "bold", size = 14),
+        plot.title = element_text(size = 14, face = "bold", hjust = 0.5),  # Centraliza título
+        axis.text = element_text(size = 12))
+
+m1_evapo_cba
+
+ggsave("fig/supplemental_material/predicted_evapo_CBA.png", bg = "white",
+       dpi = 600, width = 10, height = 8)
+
+```
+
+#### EBA
+
+```{r}
+
+# Atribuindo os dados
+model_eba_all_evapo <- model_eba_evapo %>%
+  mutate(
+    area = as.integer(ff_area),             
+    vegetation = as.character(Tipo),         
+    predicted = predict(model_EBA_evapo_w1)  
+  )
+
+# Reordenar níveis (se quiser controlar a legenda)
+model_eba_all_evapo <- model_eba_all_evapo %>%
+  mutate(vegetation = factor(vegetation,
+                             levels = c("PF","SF_early","SF_intermediate","SF_advanced")))
+
+model_eba_all_evapo[model_eba_all_evapo$ff_area== "1-10",
+                     c("area")]<-1
+model_eba_all_evapo[model_eba_all_evapo$ff_area== "10-20",
+                     c("area")]<-2
+model_eba_all_evapo[model_eba_all_evapo$ff_area== "20-30",
+                     c("area")]<-3
+model_eba_all_evapo[model_eba_all_evapo$ff_area== "30-40",
+                     c("area")]<-4
+model_eba_all_evapo[model_eba_all_evapo$ff_area== "40-50",
+                     c("area")]<-5
+model_eba_all_evapo[model_eba_all_evapo$ff_area== "50-60",
+                     c("area")]<-6
+model_eba_all_evapo[model_eba_all_evapo$ff_area== "60-70",
+                     c("area")]<-7
+model_eba_all_evapo[model_eba_all_evapo$ff_area== "70-80",
+                     c("area")]<-8
+model_eba_all_evapo[model_eba_all_evapo$ff_area== "80-90",
+                     c("area")]<-9
+model_eba_all_evapo[model_eba_all_evapo$ff_area== "90-100",
+                     c("area")]<-10
+
+model_eba_all_evapo[model_eba_all_evapo$type== 1,
+                     c("vegetation")]<-"PF"
+model_eba_all_evapo[model_eba_all_evapo$type== 2,
+                     c("vegetation")]<-"SF_early"
+model_eba_all_evapo[model_eba_all_evapo$type== 3,
+                     c("vegetation")]<-"SF_intermediate"
+model_eba_all_evapo[model_eba_all_evapo$type== 4,
+                     c("vegetation")]<-"SF_advanced"
+
+```
+
+```{r}
+
+# Reordenar os níveis de 'Tipo'
+model_eba_all_evapo <- model_eba_all_evapo %>%
+  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_early", "SF_intermediate", "SF_advanced")))
+
+
+m1_evapo_eba <- model_eba_all_evapo %>%
+  ggplot(aes(x = area * 10, y = Evapo, color = vegetation)) +  # Define 'color' no aes
+  theme_bw() +
+  geom_point(size = 1, alpha = 0.7) +  # Ajusta tamanho e transparência dos pontos
+  geom_line(aes(y = predicted, group = vegetation), size = 1) +  # Mantém cor no grupo
+  scale_color_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
+                     name = NULL,  
+                     labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +  
+  scale_fill_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
+                    name = NULL,  
+                    labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +
+  scale_y_continuous(breaks = seq(1300, 1700, by = 100)) +
+  ggthemes::theme_few() +
+  facet_wrap(~Ano, nrow = 4, ncol = 6) +
+  labs(x = "Fractional forest coverage (%)", 
+       y = "Predicted evapotranspiration (mm·yr⁻¹) - EBA",
+       color = "") +
+  theme(legend.position = "top",
+        text = element_text(family = "serif"),
+        axis.title = element_text(size = 16, face = "bold"),
+        strip.text = element_text(face = "bold", size = 12),
+        legend.text = element_text(size = 14, face = "bold"),  
+        legend.title = element_text(face = "bold", size = 14),
+        plot.title = element_text(size = 14, face = "bold", hjust = 0.5),  # Centraliza título
+        axis.text = element_text(size = 12))
+
+m1_evapo_eba
+
+ggsave("fig/supplemental_material/predicted_evapo_EBA.png", bg = "white",
+       dpi = 600, width = 10, height = 8)
+
+```
+
+#### SBA
+
+```{r}
+
+# Atribuindo os dados
+model_sba_all_evapo <- model_sba_evapo %>%
+  mutate(
+    area = as.integer(ff_area),             
+    vegetation = as.character(Tipo),         
+    predicted = predict(model_SBA_evapo_w1)  
+  )
+
+# Reordenar níveis (se quiser controlar a legenda)
+model_sba_all_evapo <- model_sba_all_evapo %>%
+  mutate(vegetation = factor(vegetation,
+                             levels = c("PF","SF_early","SF_intermediate","SF_advanced")))
+
+model_sba_all_evapo[model_sba_all_evapo$ff_area== "1-10",
+                     c("area")]<-1
+model_sba_all_evapo[model_sba_all_evapo$ff_area== "10-20",
+                     c("area")]<-2
+model_sba_all_evapo[model_sba_all_evapo$ff_area== "20-30",
+                     c("area")]<-3
+model_sba_all_evapo[model_sba_all_evapo$ff_area== "30-40",
+                     c("area")]<-4
+model_sba_all_evapo[model_sba_all_evapo$ff_area== "40-50",
+                     c("area")]<-5
+model_sba_all_evapo[model_sba_all_evapo$ff_area== "50-60",
+                     c("area")]<-6
+model_sba_all_evapo[model_sba_all_evapo$ff_area== "60-70",
+                     c("area")]<-7
+model_sba_all_evapo[model_sba_all_evapo$ff_area== "70-80",
+                     c("area")]<-8
+model_sba_all_evapo[model_sba_all_evapo$ff_area== "80-90",
+                     c("area")]<-9
+model_sba_all_evapo[model_sba_all_evapo$ff_area== "90-100",
+                     c("area")]<-10
+
+model_sba_all_evapo[model_sba_all_evapo$type== 1,
+                     c("vegetation")]<-"PF"
+model_sba_all_evapo[model_sba_all_evapo$type== 2,
+                     c("vegetation")]<-"SF_early"
+model_sba_all_evapo[model_sba_all_evapo$type== 3,
+                     c("vegetation")]<-"SF_intermediate"
+model_sba_all_evapo[model_sba_all_evapo$type== 4,
+                     c("vegetation")]<-"SF_advanced"
+
+```
+
+```{r}
+
+# Reordenar os níveis de 'Tipo'
+model_sba_all_evapo <- model_sba_all_evapo %>%
+  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_early", "SF_intermediate", "SF_advanced")))
+
+m1_evapo_sba <- model_sba_all_evapo %>%
+  ggplot(aes(x = area*10, y = Evapo))+
+  theme_bw()+
+  geom_point(aes(x = area*10, y = Evapo, color = vegetation)) + 
+  geom_line(aes(y = predicted, group = vegetation, color = vegetation), size = 1)+
+    scale_color_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
+                     name = NULL,  
+                     labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +  
+    scale_fill_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
+                    name = NULL,  
+                    labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +
+  scale_y_continuous(breaks = seq(1000, 1600, by = 150)) +
+  ggthemes::theme_few() +
+  facet_wrap(~Ano, nrow = 4, ncol = 6) +
+  labs(x = "Fractional forest coverage (%)", 
+       y = "Predicted evapotranspiration (mm·yr⁻¹) - SBA",
+       color = "") +
+  theme(legend.position = "top",
+        text = element_text(family = "serif"),
+        axis.title = element_text(size = 16, face = "bold"),
+        strip.text = element_text(face = "bold", size = 12),
+        legend.text = element_text(size = 14, face = "bold"),  # Tamanho do texto da legenda
+        legend.title = element_text(face = "bold", size = 14),
+        plot.title = element_text(size = 14, face = "bold", hjust = 0.5),  # Centraliza título
+        axis.text = element_text(size = 12))
+
+m1_evapo_sba
+
+ggsave("fig/supplemental_material/predicted_evapo_SBA.png", bg = "white",
+       dpi = 600, width = 10, height = 8)
+
+```
+
+## TEMPERATURE
+
+### Model choice
+
+```{r}
+
+# Leitura dos dados agrupados por Ano x Tipo x Region x Fração de Área
+all_pf_sf_temp_model = read_xlsx("data_group/plan_data_group_temp.xlsx")
+
+# Definindo a ordem correta das categorias
+ord_ff   <- c("1-10","10-20","20-30","30-40","40-50","50-60","60-70","70-80","80-90","90-100")
+lev_tipo <- c("PF","SF_early","SF_intermediate","SF_advanced")
+
+# Recodifica como fatores na ordem correta
+recode_fac <- function(d){
+  d %>%
+    mutate(
+      ff_area = factor(ff_area, levels = ord_ff, ordered = TRUE),
+      Tipo    = factor(Tipo,    levels = lev_tipo)
+    )
+}
+
+# Separa por região e aplica a recodificação
+model_cba_temp <- all_pf_sf_temp_model %>% filter(region == "CBA") %>% recode_fac()
+model_eba_temp <- all_pf_sf_temp_model %>% filter(region == "EBA") %>% recode_fac()
+model_sba_temp <- all_pf_sf_temp_model %>% filter(region == "SBA") %>% recode_fac()
+
+# Cria um identificador para cada estrato
+add_estrato <- function(d){
+  d$estrato_id <- interaction(d$region, d$ff_area, d$Tipo, drop = TRUE)
+  d
+}
+
+model_cba_temp <- add_estrato(model_cba_temp)
+model_eba_temp <- add_estrato(model_eba_temp)
+model_sba_temp <- add_estrato(model_sba_temp)
+
+```
+
+### Fixed effect 
+
+```{r}
+
+# CBA
+model_CBA_temp_w1 <- lmer(Temp ~ ff_area*Tipo + (1|Ano),
+                          data = model_cba_temp)
+
+# EBA
+model_EBA_temp_w1 <- lmer(Temp ~ ff_area*Tipo + (1|Ano),
+                          data = model_eba_temp)
+
+# SBA
+model_SBA_temp_w1 <- lmer(Temp ~ ff_area*Tipo + (1|Ano),
+                          data = model_sba_temp)
+
+
+# Conferir coeficientes fixos rapidamente
+broom.mixed::tidy(model_CBA_temp_w1, effects="fixed")
+broom.mixed::tidy(model_EBA_temp_w1, effects="fixed")
+broom.mixed::tidy(model_SBA_temp_w1, effects="fixed")
+
+```
+
+#### R-square for Linear Mixed Model (LMM)
+
+```{r}
+
+# ---- Helpers coerentes com os pesos do ajuste ----
+weighted_mean <- function(y, w) sum(w*y)/sum(w)
+r2_w_sse <- function(y, yhat, w) {
+  sst <- sum(w * (y - weighted_mean(y, w))^2)
+  ssr <- sum(w * (y - yhat)^2)
+  1 - ssr/sst
+}
+
+# R² ponderado "marginal" (fixos) e "condicional" (fixos + RE)  
+r2_lmer_w <- function(m, dat, resp = "Temp", type = c("marg","cond")) {
+  type <- match.arg(type)
+  w <- as.numeric(weights(m))            
+  y <- dat[[resp]]
+  yhat <- if (type == "marg") predict(m, re.form = ~0) else predict(m, re.form = NULL)
+  r2_w_sse(y, yhat, w)
+}
+
+# Calcular R² ponderado (fixo e cond.) para os modelos principais (w1 = sqrt(n_obs))
+r2_cba_temp <- c(
+  R2_marg_w = r2_lmer_w(model_CBA_temp_w1, model_cba_temp, type="marg"),
+  R2_cond_w = r2_lmer_w(model_CBA_temp_w1, model_cba_temp, type="cond")
+)
+r2_eba_temp <- c(
+  R2_marg_w = r2_lmer_w(model_EBA_temp_w1, model_eba_temp, type="marg"),
+  R2_cond_w = r2_lmer_w(model_EBA_temp_w1, model_eba_temp, type="cond")
+)
+r2_sba_temp <- c(
+  R2_marg_w = r2_lmer_w(model_SBA_temp_w1, model_sba_temp, type="marg"),
+  R2_cond_w = r2_lmer_w(model_SBA_temp_w1, model_sba_temp, type="cond")
+)
+
+r2_cba_temp; r2_eba_temp; r2_sba_temp
+
+# Exportar (opcional)
+r2_tbl <- tibble::tibble(
+  region = c("CBA","EBA","SBA"),
+  R2_marg_w = c(r2_cba_temp["R2_marg_w"], r2_eba_temp["R2_marg_w"], r2_sba_temp["R2_marg_w"]),
+  R2_cond_w = c(r2_cba_temp["R2_cond_w"], r2_eba_temp["R2_cond_w"], r2_sba_temp["R2_cond_w"])
+)
+writexl::write_xlsx(r2_tbl, "data_group/r2_weighted_temp.xlsx")
+
+```
+
+```{r}
+
+# Ajuste múltiplo BH para comparações por faixa.
+emm_CBA <- emmeans(model_CBA_temp_w1, specs = ~ Tipo | ff_area, lmer.df = "satterthwaite")
+pairs(emm_CBA, by = "ff_area", adjust = "BH")
+
+emm_EBA <- emmeans(model_EBA_temp_w1, specs = ~ Tipo | ff_area, lmer.df = "satterthwaite")
+pairs(emm_EBA, by = "ff_area", adjust = "BH")
+
+emm_SBA <- emmeans(model_SBA_temp_w1, specs = ~ Tipo | ff_area, lmer.df = "satterthwaite")
+pairs(emm_SBA, by = "ff_area", adjust = "BH")
+
+```
+
+##### Heterocedasticidade
+
+```{r}
+
+# Função: resíduos normalizados vs n_obs, com controle de eixos
+plot_resid_hetero <- function(m_lme, dat, region_name,
+                              show_x_lab = TRUE,
+                              show_y_lab = TRUE) {
+  rn <- residuals(m_lme, type = "response")
+  ggplot(data.frame(n_obs = dat$n_obs, rnorm = rn),
+         aes(n_obs, rnorm)) +
+    geom_point(alpha = .35) +
+    geom_smooth(method = "loess", se = FALSE) +
+    geom_hline(yintercept = 0, lty = 2, col = "grey40") +
+    scale_x_log10() +
+    ggthemes::theme_few() +
+    theme(
+      text = element_text(size = 12, face = "bold", family = "serif"),
+      plot.title = element_text(hjust = 0.5)  
+    ) +
+    labs(
+      #title = region_name,
+      x = if (show_x_lab) expression(n[obs]~"(log scale)") else NULL,  
+      y = if (show_y_lab) "Normalized residuals" else NULL             
+    )
+}
+
+# Monta cada painel com as regras pedidas:
+# - CBA: só Y
+p_het_cba <- plot_resid_hetero(model_CBA_temp_w1, model_cba_temp, "CBA",
+                               show_x_lab = FALSE, show_y_lab = TRUE)
+
+# - EBA: só X
+p_het_eba <- plot_resid_hetero(model_EBA_temp_w1, model_eba_temp, "EBA",
+                               show_x_lab = TRUE, show_y_lab = FALSE)
+
+# - SBA: sem X e sem Y
+p_het_sba <- plot_resid_hetero(model_SBA_temp_w1, model_sba_temp, "SBA",
+                               show_x_lab = FALSE, show_y_lab = FALSE)
+
+# Painel 
+painel_het_temp <- ggpubr::ggarrange(p_het_cba, p_het_eba, p_het_sba,
+                                     ncol = 3, nrow = 1, align = "hv")
+
+painel_het_temp
+
+ggsave("fig/supplemental_material/hetero_residuals_lme_temp.png", width=8, height=6, dpi=400, bg="white")
+
+```
+
+##### QQ Plot
+
+```{r}
+
+qq_lme <- function(m, region_name = "", show_y_title = FALSE, show_x_title = FALSE){
+  rn <- residuals(m, type = "response")
+  ggplot(data.frame(rn = rn), aes(sample = rn)) +
+    stat_qq(distribution = stats::qnorm) +
+    stat_qq_line(distribution = stats::qnorm) +
+    ggthemes::theme_few() +
+    theme(
+      text = element_text(size = 12, face = "bold", family = "serif"),
+      plot.title = element_text(size = 12, face = "bold", hjust = 0.5),
+      axis.title.y = if (show_y_title) element_text() else element_blank(),
+      axis.title.x = if (show_x_title) element_text() else element_blank()
+    ) +
+    labs(
+      title = region_name,
+      x = "Theoretical quantiles (N(0,1))",
+      y = if (show_y_title) "Sample quantiles" else NULL
+    )
+}
+
+# y só na 1ª coluna (CBA) e x só na 2ª (EBA)
+qq_cba <- qq_lme(model_CBA_temp_w1, "", show_y_title = TRUE,  show_x_title = FALSE)
+qq_eba <- qq_lme(model_EBA_temp_w1, "", show_y_title = FALSE, show_x_title = TRUE)
+qq_sba <- qq_lme(model_SBA_temp_w1, "", show_y_title = FALSE, show_x_title = FALSE)
+
+painel_qq_temp <- ggpubr::ggarrange(qq_cba, qq_eba, qq_sba, ncol = 3, nrow = 1, align = "hv")
+painel_qq_temp
+
+ggsave("fig/supplemental_material/qqplot_temp.png", bg = "white",
+       dpi = 600, width = 8, height = 6)
+
+```
+
+#### CCC de Lins
+
+```{r}
+
+## CBA
+
+# Obter os valores observados e previstos
+observado_cba_temp <- model_cba_temp$Temp
+previsto_cba_temp  <- predict(model_CBA_temp_w1)
+
+ccc_result_cba_temp  <- CCC(observado_cba_temp , previsto_cba_temp )
+ccc_val_cba_temp <- round(ccc_result_cba_temp$rho.c[, "est"], 3)
+
+
+## EBA
+
+# Obter os valores observados e previstos
+observado_eba_temp <- model_eba_temp$Temp
+previsto_eba_temp  <- predict(model_EBA_temp_w1)
+
+ccc_result_eba_temp  <- CCC(observado_eba_temp , previsto_eba_temp )
+ccc_val_eba_temp <- round(ccc_result_eba_temp$rho.c[, "est"], 3)
+
+## SBA
+
+# Obter os valores observados e previstos
+observado_sba_temp <- model_sba_temp$Temp
+previsto_sba_temp  <- predict(model_SBA_temp_w1)
+
+ccc_result_sba_temp  <- CCC(observado_sba_temp , previsto_sba_temp )
+ccc_val_sba_temp <- round(ccc_result_sba_temp$rho.c[, "est"], 3)
+
+```
+
+#### Efeitos para cada ff_area e classe florestal
+
+```{r}
+
+# Intervalos p/ plot “em_all”
+em_df_cba <- as.data.frame(emm_CBA); em_df_cba$region <- "CBA"
+em_df_eba <- as.data.frame(emm_EBA); em_df_eba$region <- "EBA"
+em_df_sba <- as.data.frame(emm_SBA); em_df_sba$region <- "SBA"
+
+em_all <- bind_rows(em_df_cba, em_df_eba, em_df_sba) %>%
+  mutate(
+    ff_area = factor(ff_area, levels = c("1-10","10-20","20-30","30-40",
+                                         "40-50","50-60","60-70","70-80","80-90","90-100")),
+    Tipo    = factor(Tipo,    levels = c("PF","SF_early","SF_intermediate","SF_advanced"))
+  )
+
+# Comparações dentro de cada faixa (matriz / pwpm)
+em_cba_pw <- emmeans(model_CBA_temp_w1, ~ Tipo | ff_area, lmer.df = "satterthwaite")
+em_eba_pw <- emmeans(model_EBA_temp_w1, ~ Tipo | ff_area, lmer.df = "satterthwaite")
+em_sba_pw <- emmeans(model_SBA_temp_w1, ~ Tipo | ff_area, lmer.df = "satterthwaite")
+
+pwpm(em_cba_pw, sort = FALSE)
+pwpm(em_eba_pw, sort = FALSE)
+pwpm(em_sba_pw, sort = FALSE)
+
+# Exportar matriz como data.frame
+pw_cba_df <- as.data.frame(pwpm(em_cba_pw, sort = FALSE))
+pw_eba_df <- as.data.frame(pwpm(em_eba_pw, sort = FALSE))
+pw_sba_df <- as.data.frame(pwpm(em_sba_pw, sort = FALSE))
+pw_df <- bind_rows(pw_cba_df, pw_eba_df, pw_sba_df)
+
+openxlsx::write.xlsx(pw_df, file = "data_group/matriz_contrastes_pwpm_temp.xlsx", rowNames = TRUE)
+
+# Tabela final - análises
+tabela_estilo_fig1 <- em_all %>%
+  mutate(
+    Tipo = factor(Tipo, levels = c("PF","SF_early","SF_intermediate","SF_advanced"))
+  ) %>%
+  rename(
+    Region   = region,
+    Cover    = Tipo,
+    Effect   = emmean,
+    Interval = ff_area,
+    CI_lower = lower.CL,
+    CI_upper = upper.CL
+  ) %>%
+  mutate(
+    Variable = "TEMP",
+    Cover = factor(Cover, levels = c("PF","SF_early","SF_intermediate","SF_advanced")),
+    Interval = factor(Interval, levels = c("1-10","10-20","20-30","30-40","40-50",
+                                           "50-60","60-70","70-80","80-90","90-100"))
+  ) %>%
+  arrange(Region, Cover, Interval) %>%
+  dplyr::select(Region, Cover, Variable, Effect, Interval, CI_lower, CI_upper)
+
+openxlsx::write.xlsx(
+  tabela_estilo_fig1,
+  file = "data_group/emmeans_intervalos_temp.xlsx",
+  rowNames = FALSE
+)
+
+# Tabela final - SI
+
+# Preparar tabela base
+t2 <- em_all %>%
+  mutate(
+    Cover = factor(Tipo, levels = c("PF","SF_early","SF_intermediate","SF_advanced")),
+    Interval = factor(ff_area, levels = c("1-10","10-20","20-30","30-40",
+                                          "40-50","50-60","60-70","70-80",
+                                          "80-90","90-100"))
+  ) %>%
+  dplyr::select(region, Interval, Cover,
+         Effect = emmean,
+         CI_lower = lower.CL,
+         CI_upper = upper.CL)
+
+# Reorganizar para formato largo (larger table like Figure 2)
+tabela_fig2 <- t2 %>%
+  arrange(Interval, Cover) %>%
+  tidyr::pivot_wider(
+    names_from = region,
+    values_from = c(Effect, CI_lower, CI_upper),
+    names_glue = "{region}_{.value}"
+  ) %>%
+  arrange(Interval, Cover)
+
+openxlsx::write.xlsx(
+  tabela_fig2,
+  file = "data_group/emmeans_intervalos_temp_table_final.xlsx",
+  rowNames = FALSE
+)
+
+```
+
+#### Constrastes e significancia
+
+```{r}
+
+get_contrasts <- function(model, region_name) {
+  em <- emmeans(model, ~ ff_area*Tipo, lmer.df = "satterthwaite")
+  contrast_res <- contrast(em, method = "revpairwise", by = "ff_area", adjust = "fdr")
+  df <- as.data.frame(contrast_res)
+  df$region <- region_name
+  df
+}
+
+contrast_CBA_df <- get_contrasts(model_CBA_temp_w1, "CBA")
+contrast_EBA_df <- get_contrasts(model_EBA_temp_w1, "EBA")
+contrast_SBA_df <- get_contrasts(model_SBA_temp_w1, "SBA")
+
+all_contrasts <- bind_rows(contrast_CBA_df, contrast_EBA_df, contrast_SBA_df) %>%
+  filter(grepl("PF", contrast) & grepl("SF_", contrast)) %>%
+  tidyr::separate(contrast, into = c("tipo1", "tipo2"), sep = " - ") %>%
+  filter((tipo1 == "PF" & tipo2 %in% c("SF_early","SF_intermediate","SF_advanced")) |
+         (tipo2 == "PF" & tipo1 %in% c("SF_early","SF_intermediate","SF_advanced"))) %>%
+  mutate(
+    ff_area = factor(ff_area, levels = c("1-10","10-20","20-30","30-40",
+                                         "40-50","50-60","60-70","70-80","80-90","90-100")),
+    tipo_sf = if_else(tipo1 == "PF", tipo2, tipo1),
+    tipo_sf = factor(tipo_sf, levels = c("SF_early","SF_intermediate","SF_advanced")),
+    estimate = if_else(tipo1 == "PF", estimate, -estimate),  # garantir PF − SF
+    sig_label = ifelse(p.value < 0.05, "*", "")
+  )
+
+writexl::write_xlsx(all_contrasts, "data_group/contrast_PF_SF_temp.xlsx")
+
+```
+
+### Painel Temp
+
+```{r}
+
+# Plot de pontos
+plot_point_temp <- function(region_name, show_y = TRUE, show_x = TRUE, show_legend = FALSE, show_y_axes = TRUE) {
+  p <- ggplot(filter(em_all, region == region_name)%>%
+    mutate(
+      Tipo = factor(Tipo) %>%
+        fct_relevel("PF", "SF_early", "SF_intermediate", "SF_advanced") %>%
+        fct_recode(
+          "PF" = "PF",
+          "SF early" = "SF_early",
+          "SF intermediate" = "SF_intermediate",
+          "SF advanced" = "SF_advanced"
+        )
+    ), 
+    aes(x = ff_area, y = emmean, color = Tipo, group = Tipo)) +
+    geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL),
+                  position = position_dodge(width = 0.8), width = 0.6, size = 0.5) +
+    geom_point(position = position_dodge(width = 0.8), size = 1.5) +
+    ggthemes::theme_few() +
+    theme(
+      text = element_text(size = 12, face = "bold", family = "serif"),
+      legend.position = if (show_legend) "right" else "none",
+      legend.title = element_blank(),
+      legend.background = element_rect(fill = "transparent"),
+      legend.text = element_text(size = 10),
+      axis.text = element_text(size = 10, face = "plain", family = "serif", color = "black"),
+      #axis.text.x = element_blank(),
+      axis.text.x = element_text(size = 10, angle = 45, hjust = 1, vjust = 1),
+      axis.text.y = if (show_y_axes) element_text(size = 10) else element_blank(),
+      axis.title.y = if (show_y) element_text(size = 14, margin = margin(r = -20)) else element_blank(),
+      axis.title.x = if (show_x) element_text(size = 12) else element_blank(),
+      strip.text = element_text(size = 14, face = "bold", family = "serif"),
+      plot.margin = margin(2, 2, 2, 2)
+    ) +
+    scale_color_manual(values = c("#7F3B08", "#FEE0B6", "#FDB863", "#E08214")) +
+    scale_y_continuous(limits = c(24, 26.5), breaks = seq(24, 26.5, by = 0.5)) +
+    #labs(y = if (show_y) "Temperature\nfixed effects (°C·yr⁻¹)" else NULL) +
+    labs(x = "Fractional cover (%)",
+         y = if (show_y) expression(bold(atop("Estimated marginal mean", "temperature (°C·yr"^{-1}*")"))) else NULL) 
+  
+  return(p)
+}
+
+
+# Atualizar ordem dos fatores e renomear os labels
+all_contrasts <- all_contrasts %>%
+  mutate(
+    tipo_sf = factor(tipo_sf, levels = c("SF_early", "SF_intermediate", "SF_advanced")),
+    tipo_sf_label = fct_recode(tipo_sf,
+                               "SF early" = "SF_early",
+                               "SF intermediate" = "SF_intermediate",
+                               "SF advanced" = "SF_advanced")
+  )
+
+
+# Criar coluna categórica para estimate
+all_contrasts <- all_contrasts %>%
+  mutate(
+    estimate_cat = factor(
+      cut(estimate,
+          breaks = c(-Inf, -0.3, 0, Inf),
+          labels = c("<−0.3", "−0.3 to 0", ">0")
+      ),
+      levels = c("<−0.3", "−0.3 to 0", ">0")
+    )
+  )
+
+# Heatmap de contrastes
+plot_heat_temp <- function(region_name, show_legend = FALSE, show_y_labels = TRUE) {
+  ggplot(filter(all_contrasts, region == region_name), 
+         aes(x = ff_area, y = tipo_sf_label, fill = estimate_cat)) +
+    geom_tile(color = "white", height = 0.7) +
+    geom_text(aes(label = sig_label), size = 3, color = "black", family = "serif") +
+    scale_fill_manual(values = c("<−0.3" = "#4393C3", "−0.3 to 0" = "#92C5DE", ">0" = "#D6604D"),
+                      limits = c("<−0.3", "−0.3 to 0", ">0"),
+                      drop = FALSE,
+                      name = bquote(bold(atop(Delta~"LST (PF − SF)", "(°C)")))
+)+
+    ggthemes::theme_few() +
+    theme(
+      text = element_text(size = 12, face = "bold", family = "serif"),
+      axis.text.x = element_blank(),
+      axis.title = element_blank(),
+      axis.text.y = if (show_y_labels) element_text(size = 10, face = "plain", family = "serif", color = "black") else element_blank(),
+      legend.position = if (show_legend) "right" else "none",
+      legend.title = element_text(size = 10, face = "bold", family = "serif"),
+      legend.text = element_text(size = 10),
+      plot.title = element_text(hjust = 0.5, size = 14, face = "bold", family = "serif"),
+      strip.text = element_text(size = 14, face = "bold", family = "serif"),
+      plot.margin = margin(2, 2, 2, 2)
+    ) +
+    labs(title = "")
+}
+  
+
+# Combinar gráficos para cada região
+panel_CBA_temp <- plot_heat_temp("CBA", show_legend = FALSE, show_y_labels = TRUE) /
+             plot_point_temp("CBA", show_y = TRUE, show_x = FALSE, show_legend = FALSE, show_y_axes = TRUE)
+panel_CBA_temp <- panel_CBA_temp + plot_layout(heights = c(0.2, 0.8))
+
+panel_EBA_temp <- plot_heat_temp("EBA", show_legend = FALSE, show_y_labels = FALSE) /
+             plot_point_temp("EBA", show_y = FALSE, show_x = TRUE,  show_legend = FALSE, show_y_axes = FALSE)
+panel_EBA_temp <- panel_EBA_temp + plot_layout(heights = c(0.2, 0.8))
+
+panel_SBA_temp <- plot_heat_temp("SBA", show_legend = TRUE, show_y_labels = FALSE) /
+             plot_point_temp("SBA", show_y = FALSE, show_x = FALSE, show_legend = TRUE, show_y_axes = FALSE)
+panel_SBA_temp <- panel_SBA_temp + plot_layout(heights = c(0.2, 0.8))
+
+# Combinar todos os painéis horizontalmente
+final_panel_temp <- (panel_CBA_temp | panel_EBA_temp | panel_SBA_temp)
+
+# Exibir painel final
+final_panel_temp
+
+# Salvar
+ggsave("fig/em_fixed_fixed_temp.png",
+       plot = final_panel_temp,
+       bg = "white", dpi = 600, width = 9, height = 5.5)
+
+gc()
+
+
+```
+
+#### Todos os constraste entre frações de área
+
+```{r}
+
+# Lista de modelos
+modelos <- list(CBA = model_CBA_temp_w1, EBA = model_EBA_temp_w1, SBA = model_SBA_temp_w1)
+
+# Função para gerar todos os contrastes PF - SF
+get_all_contrasts <- function(model, region_name) {
+  em <- emmeans(model, ~ ff_area * Tipo)
+  contrast_res <- contrast(em, method = "revpairwise", adjust = "fdr")
+  df <- as.data.frame(contrast_res)
+  df$region <- region_name
+  return(df)
+}
+
+# Aplicar para todas as regiões
+all_contrasts_sup <- purrr::map2_dfr(modelos, names(modelos), get_all_contrasts)
+
+str(all_contrasts_sup)
+
+# Extrair contrastes entre PF e SF
+sf_levels <- c("SF_early", "SF_intermediate", "SF_advanced")
+
+all_contrasts_sup <- all_contrasts_sup %>%
+  filter(str_detect(contrast, "PF") & str_detect(contrast, "SF_"))
+
+# Extrair informações usando regex
+# Regex para capturar (faixa tipo) - (faixa tipo)
+extr <- str_match(all_contrasts_sup$contrast,
+                  "\\(([^ ]+) ([^)]+)\\) - \\(([^ ]+) ([^)]+)\\)")
+
+# Adicionar colunas extraídas
+all_contrasts_sup <- all_contrasts_sup %>%
+  mutate(
+    faixa1 = extr[, 2],
+    tipo1 = extr[, 3],
+    faixa2 = extr[, 4],
+    tipo2 = extr[, 5]
+  ) %>%
+  filter((tipo1 == "PF" & tipo2 %in% sf_levels) | (tipo2 == "PF" & tipo1 %in% sf_levels)) %>%
+  mutate(
+    faixa_PF = if_else(tipo1 == "PF", faixa1, faixa2),
+    faixa_SF = if_else(tipo1 == "PF", faixa2, faixa1),
+    tipo_SF  = if_else(tipo1 == "PF", tipo2, tipo1),
+    estimate = if_else(tipo1 == "PF", estimate, -estimate),  # garantir PF - SF
+    sig_label = ifelse(p.value < 0.05, "*", "")
+  )
+
+# Ajustar fatores
+faixas_niveis <- c("1-10", "10-20", "20-30", "30-40", "40-50",
+                   "50-60", "60-70", "70-80", "80-90", "90-100")
+
+sf_levels <- c("SF_early", "SF_intermediate", "SF_advanced")
+
+all_contrasts_sup <- all_contrasts_sup %>%
+  mutate(
+    faixa_PF = factor(faixa_PF, levels = faixas_niveis),
+    faixa_SF = factor(faixa_SF, levels = faixas_niveis),
+    tipo_SF  = factor(tipo_SF,  levels = sf_levels)
+  )
+
+
+# Classificação mantendo sinal
+all_contrasts_sup <- all_contrasts_sup %>%
+   mutate(
+    tipo_SF = fct_recode(tipo_SF,
+                         "SF early" = "SF_early",
+                         "SF intermediate" = "SF_intermediate",
+                         "SF advanced" = "SF_advanced")
+  ) %>% 
+    mutate(
+    estimate_class = case_when(
+      estimate < -0.6 ~ "<-0.6",
+      estimate >= -0.6 & estimate < -0.3 ~ "-0.3 – -0.6",
+      estimate >= -0.3 & estimate < 0 ~ "0 – -0.3",
+      estimate >= 0 ~ ">0"
+    ),
+    estimate_class = factor(estimate_class, levels = c("<-0.6", "-0.3 – -0.6", "0 – -0.3", ">0"))
+  )
+
+
+# Plot
+heatmap_all_contrasts <- ggplot(all_contrasts_sup, 
+                        aes(x = faixa_SF, y = faixa_PF, fill = estimate_class)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = sig_label), color = "black", size = 3, family = "serif") +
+  scale_fill_manual(values = c(
+  "<-0.6" = "#2166AC",
+  "-0.3 – -0.6" = "#4393C3",
+  "0 – -0.3" = "#92C5DE",
+  ">0" = "#F4A582"
+), name = expression(bold(atop(Delta~"LST (PF - SF)", "(°C·yr"^{-1}*")"))))+
+  facet_grid(tipo_SF ~ region) +
+  theme_minimal(base_family = "serif") +
+  theme(
+    text = element_text(size = 12, face = "bold", family = "serif"),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text = element_text(size = 12, face = "bold"),
+    axis.text = element_text(size = 10, face = "plain", family = "serif", color = "black")
+  ) +
+   labs(x = "SF fractional cover (%)",
+        y = "PF fractional cover (%)")
+
+heatmap_all_contrasts
+
+# Salvar
+ggsave("fig/supplemental_material/contrastes_fixed_efects_temp.png", width = 10, height = 8, dpi = 600, bg = "white")
+
+ggsave("fig/supplemental_material/contrastes_fixed_efects_temp.pdf", width = 10, height = 8, bg = "white")
+
+gc()
+
+```
+
+### Random effect
+
+```{r}
+
+# Função para extrair efeitos aleatórios com IC por região
+extract_random_effects <- function(model, region_name) {
+  # Efeitos aleatórios com variância condicional
+  ran <- ranef(model, condVar = TRUE)
+  
+  # Extrair efeitos por ano
+  ran_df <- as.data.frame(ran$Ano)
+  names(ran_df) <- "effect"
+  ran_df$ano <- rownames(ran$Ano)
+  
+  # Intervalos de confiança (erro padrão)
+  se <- attr(ran$Ano, "postVar")[1, 1, ] |> sqrt()
+  
+  ran_df <- ran_df %>%
+    mutate(
+      se = se,
+      lower = effect - 1.96 * se,
+      upper = effect + 1.96 * se,
+      region = region_name
+    )
+  
+  return(ran_df)
+}
+
+# Aplicar para os três modelos (substitua pelos seus objetos reais)
+random_cba <- extract_random_effects(model_CBA_temp_w1, "CBA")
+random_eba <- extract_random_effects(model_EBA_temp_w1, "EBA")
+random_sba <- extract_random_effects(model_SBA_temp_w1, "SBA")
+
+# Combinar tudo
+random_all <- bind_rows(random_cba, random_eba, random_sba)
+
+# Garantir que o ano seja ordenável
+random_all$ano <- as.numeric(as.character(random_all$ano))
+
+# Salvar
+write_xlsx(random_all, "data_group/random_effects_temp.xlsx")
+
+```
+
+##### Plot
+
+```{r}
+
+# Plot
+p1_rand_temp <- ggplot(random_all, aes(x = ano, y = effect)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray40") +
+  geom_bar(stat = "identity", position = "dodge", alpha = 0.8, fill = "#E08214") +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.5, color = "black") +
+  facet_wrap(~region, scales = "free_x") +
+  scale_x_continuous(breaks = seq(2001, 2021, by = 2)) + 
+  ggthemes::theme_few() +
+    theme(
+      text = element_text(size = 12, face = "bold", family = "serif"),
+      axis.text = element_text(size = 10, face = "plain", family = "serif", color = "black"),
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      axis.title = element_text(size = 14),
+      #strip.text = element_text(face = "bold", size = 13)) +
+      strip.text = element_blank()) +
+  labs(
+    x = "",
+    y = expression(bold(atop("Temperature", "random effects (°C·yr"^{-1}*")")))
+  )
+
+p1_rand_temp
+
+ggsave("fig/histogram_random_temp.png", bg = "white", dpi = 600, width = 9, height = 5.5)
+
+
+```
+
+### Predicted
+
+#### Plot
+
+```{r}
+
+model_cba_temp$predicted <- predict(model_CBA_temp_w1, model_cba_temp)
+model_eba_temp$predicted <- predict(model_EBA_temp_w1, model_eba_temp)
+model_sba_temp$predicted <- predict(model_SBA_temp_w1, model_sba_temp)
+
+r2_cba_temp_lab <- r2_lmer_w(model_CBA_temp_w1, model_cba_temp, type = "cond")
+r2_eba_temp_lab <- r2_lmer_w(model_EBA_temp_w1, model_eba_temp, type = "cond")
+r2_sba_temp_lab <- r2_lmer_w(model_SBA_temp_w1, model_sba_temp, type = "cond")
+
+
+all_vals <- c(model_cba_temp$Temp, model_cba_temp$predicted,
+              model_eba_temp$Temp, model_eba_temp$predicted,
+              model_sba_temp$Temp, model_sba_temp$predicted)
+
+rng     <- range(all_vals, na.rm = TRUE)
+pad     <- 0.02 * diff(rng)
+lim_min <- floor((rng[1] - pad) / 0.5) * 0.5
+lim_max <- ceiling((rng[2] + pad) / 0.5) * 0.5
+brks    <- seq(lim_min, lim_max, by = 0.5)
+
+# Função base do gráfico (escala 1:1 e linha 45°)
+make_plot <- function(dat, titulo, subtitulo){
+  ggplot(dat, aes(Temp, predicted)) +
+    geom_point(size = 2, alpha = .7, na.rm = TRUE) +
+    geom_smooth(method = "lm", se = FALSE, color = "orange", na.rm = TRUE) +
+    geom_abline(slope = 1, intercept = 0, linetype = 2, color = "grey40") +
+    scale_x_continuous(limits = c(lim_min, lim_max), breaks = brks,
+                       expand = expansion(mult = 0.01)) +   
+    scale_y_continuous(limits = c(lim_min, lim_max), breaks = brks,
+                       expand = expansion(mult = 0.01)) +
+    theme_minimal() +
+    labs(x = "Observed LST (°C·yr⁻¹)", 
+         y = "Predicted LST (°C·yr⁻¹)",
+         title = titulo, subtitle = subtitulo)
+}
+
+```
+
+#### Painel
+
+```{r}
+
+# Plots
+cba_pf <- make_plot(model_cba_temp, "", paste0("R² = ", round(r2_cba_temp_lab, 3), " | CCC = ", ccc_val_cba_temp))
+eba_pf <- make_plot(model_eba_temp, "", paste0("R² = ", round(r2_eba_temp_lab, 3), " | CCC = ", ccc_val_eba_temp)) + labs(y = NULL)
+sba_pf <- make_plot(model_sba_temp, "", paste0("R² = ", round(r2_sba_temp_lab, 3), " | CCC = ", ccc_val_sba_temp)) + labs(y = NULL)
+
+
+# Painel
+p3_pred_temp <- (cba_pf + eba_pf + sba_pf) +
+  patchwork::plot_layout(ncol = 3, nrow = 1, guides = "collect") +
+  theme(
+    text = element_text(size = 12, face = "bold", family = "serif"),
+    axis.text  = element_text(size = 10, face = "plain", family = "serif"),
+    axis.text.x = element_text(size = 10, angle = 45, hjust = 1, vjust = 1, family = "serif")
+  )
+
+p3_pred_temp
+
+ggsave("fig/supplemental_material/predicted_observed_temp.png", bg = "white", dpi = 600, width = 12, height = 5.5)
+
+gc()
+
+```
+
+### Model plotting
+
+#### CBA
+
+```{r}
+
+# Atribuindo os dados
+model_cba_all_temp <- model_cba_temp %>%
+  mutate(
+    area = as.integer(ff_area),             
+    vegetation = as.character(Tipo),         
+    predicted = predict(model_CBA_temp_w1)  
+  )
+
+# Reordenar níveis (se quiser controlar a legenda)
+model_cba_all_temp <- model_cba_all_temp %>%
+  mutate(vegetation = factor(vegetation,
+                             levels = c("PF","SF_early","SF_intermediate","SF_advanced")))
+
+
+model_cba_all_temp[model_cba_all_temp$ff_area== "1-10",
+                     c("area")]<-1
+model_cba_all_temp[model_cba_all_temp$ff_area== "10-20",
+                     c("area")]<-2
+model_cba_all_temp[model_cba_all_temp$ff_area== "20-30",
+                     c("area")]<-3
+model_cba_all_temp[model_cba_all_temp$ff_area== "30-40",
+                     c("area")]<-4
+model_cba_all_temp[model_cba_all_temp$ff_area== "40-50",
+                     c("area")]<-5
+model_cba_all_temp[model_cba_all_temp$ff_area== "50-60",
+                     c("area")]<-6
+model_cba_all_temp[model_cba_all_temp$ff_area== "60-70",
+                     c("area")]<-7
+model_cba_all_temp[model_cba_all_temp$ff_area== "70-80",
+                     c("area")]<-8
+model_cba_all_temp[model_cba_all_temp$ff_area== "80-90",
+                     c("area")]<-9
+model_cba_all_temp[model_cba_all_temp$ff_area== "90-100",
+                     c("area")]<-10
+
+model_cba_all_temp[model_cba_all_temp$type== 1,
+                     c("vegetation")]<-"PF"
+model_cba_all_temp[model_cba_all_temp$type== 2,
+                     c("vegetation")]<-"SF_early"
+model_cba_all_temp[model_cba_all_temp$type== 3,
+                     c("vegetation")]<-"SF_intermediate"
+model_cba_all_temp[model_cba_all_temp$type== 4,
+                     c("vegetation")]<-"SF_advanced"
+
+```
+
+```{r}
+
+# Reordenar os níveis de 'Tipo'
+model_cba_all_temp <- model_cba_all_temp %>%
+  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_early", "SF_intermediate", "SF_advanced")))
+
+
+m1_temp_cba <- model_cba_all_temp %>%
+  ggplot(aes(x = area * 10, y = Temp, color = vegetation)) +  # Define 'color' no aes
+  theme_bw() +
+  geom_point(size = 1, alpha = 0.7) +  # Ajusta tamanho e transparência dos pontos
+  geom_line(aes(y = predicted, group = vegetation), size = 1) +  # Mantém cor no grupo
+  scale_color_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
+                     name = NULL,  
+                     labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +  
+  scale_fill_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
+                    name = NULL,  
+                    labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +  
+  facet_wrap(~Ano, nrow = 4, ncol = 6) +
+  scale_y_continuous(breaks = seq(24, 27, by = 0.5)) +
+  ggthemes::theme_few() +
+  labs(x = "Fractional forest coverage (%)", 
+       y = "Predicted temperature (°C) - CBA",
+       color = "") +
+  theme(legend.position = "top",
+        text = element_text(family = "serif"),
+        axis.title = element_text(size = 16, face = "bold"),
+        strip.text = element_text(face = "bold", size = 12),
+        legend.text = element_text(size = 14, face = "bold"),  
+        legend.title = element_text(face = "bold", size = 14),
+        plot.title = element_text(size = 14, face = "bold", hjust = 0.5),  # Centraliza título
+        axis.text = element_text(size = 12))
+
+m1_temp_cba
+
+ggsave("fig/supplemental_material/predicted_temp_CBA.png", bg = "white",
+       dpi = 600, width = 10, height = 8)
+
+```
+
+#### EBA
+
+```{r}
+
+# Atribuindo os dados
+model_eba_all_temp <- model_eba_temp %>%
+  mutate(
+    area = as.integer(ff_area),             
+    vegetation = as.character(Tipo),         
+    predicted = predict(model_EBA_temp_w1)  
+  )
+
+# Reordenar níveis (se quiser controlar a legenda)
+model_eba_all_temp <- model_eba_all_temp %>%
+  mutate(vegetation = factor(vegetation,
+                             levels = c("PF","SF_early","SF_intermediate","SF_advanced")))
+
+model_eba_all_temp[model_eba_all_temp$ff_area== "1-10",
+                     c("area")]<-1
+model_eba_all_temp[model_eba_all_temp$ff_area== "10-20",
+                     c("area")]<-2
+model_eba_all_temp[model_eba_all_temp$ff_area== "20-30",
+                     c("area")]<-3
+model_eba_all_temp[model_eba_all_temp$ff_area== "30-40",
+                     c("area")]<-4
+model_eba_all_temp[model_eba_all_temp$ff_area== "40-50",
+                     c("area")]<-5
+model_eba_all_temp[model_eba_all_temp$ff_area== "50-60",
+                     c("area")]<-6
+model_eba_all_temp[model_eba_all_temp$ff_area== "60-70",
+                     c("area")]<-7
+model_eba_all_temp[model_eba_all_temp$ff_area== "70-80",
+                     c("area")]<-8
+model_eba_all_temp[model_eba_all_temp$ff_area== "80-90",
+                     c("area")]<-9
+model_eba_all_temp[model_eba_all_temp$ff_area== "90-100",
+                     c("area")]<-10
+
+model_eba_all_temp[model_eba_all_temp$type== 1,
+                     c("vegetation")]<-"PF"
+model_eba_all_temp[model_eba_all_temp$type== 2,
+                     c("vegetation")]<-"SF_early"
+model_eba_all_temp[model_eba_all_temp$type== 3,
+                     c("vegetation")]<-"SF_intermediate"
+model_eba_all_temp[model_eba_all_temp$type== 4,
+                     c("vegetation")]<-"SF_advanced"
+
+```
+
+```{r}
+
+# Reordenar os níveis de 'Tipo'
+model_eba_all_temp <- model_eba_all_temp %>%
+  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_early", "SF_intermediate", "SF_advanced")))
+
+
+m1_temp_eba <- model_eba_all_temp %>%
+  ggplot(aes(x = area * 10, y = Temp, color = vegetation)) +  # Define 'color' no aes
+  theme_bw() +
+  geom_point(size = 1, alpha = 0.7) +  # Ajusta tamanho e transparência dos pontos
+  geom_line(aes(y = predicted, group = vegetation), size = 1) +  # Mantém cor no grupo
+  scale_color_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
+                     name = NULL,  
+                     labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +  
+  scale_fill_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
+                    name = NULL,  
+                    labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +
+  scale_y_continuous(breaks = seq(23, 27, by = 0.5)) +
+  ggthemes::theme_few() +
+  facet_wrap(~Ano, nrow = 4, ncol = 6) +
+  labs(x = "Fractional forest coverage (%)", 
+       y = "Predicted temperature (°C) - EBA",
+       color = "") +
+  theme(legend.position = "top",
+        text = element_text(family = "serif"),
+        axis.title = element_text(size = 16, face = "bold"),
+        strip.text = element_text(face = "bold", size = 12),
+        legend.text = element_text(size = 14, face = "bold"),  
+        legend.title = element_text(face = "bold", size = 14),
+        plot.title = element_text(size = 14, face = "bold", hjust = 0.5),  # Centraliza título
+        axis.text = element_text(size = 12))
+
+m1_temp_eba
+
+ggsave("fig/supplemental_material/predicted_temp_EBA.png", bg = "white",
+       dpi = 600, width = 10, height = 8)
+
+```
+
+#### SBA
+
+```{r}
+
+# Atribuindo os dados
+model_sba_all_temp <- model_sba_temp %>%
+  mutate(
+    area = as.integer(ff_area),             
+    vegetation = as.character(Tipo),         
+    predicted = predict(model_SBA_temp_w1)  
+  )
+
+# Reordenar níveis (se quiser controlar a legenda)
+model_sba_all_temp <- model_sba_all_temp %>%
+  mutate(vegetation = factor(vegetation,
+                             levels = c("PF","SF_early","SF_intermediate","SF_advanced")))
+
+model_sba_all_temp[model_sba_all_temp$ff_area== "1-10",
+                     c("area")]<-1
+model_sba_all_temp[model_sba_all_temp$ff_area== "10-20",
+                     c("area")]<-2
+model_sba_all_temp[model_sba_all_temp$ff_area== "20-30",
+                     c("area")]<-3
+model_sba_all_temp[model_sba_all_temp$ff_area== "30-40",
+                     c("area")]<-4
+model_sba_all_temp[model_sba_all_temp$ff_area== "40-50",
+                     c("area")]<-5
+model_sba_all_temp[model_sba_all_temp$ff_area== "50-60",
+                     c("area")]<-6
+model_sba_all_temp[model_sba_all_temp$ff_area== "60-70",
+                     c("area")]<-7
+model_sba_all_temp[model_sba_all_temp$ff_area== "70-80",
+                     c("area")]<-8
+model_sba_all_temp[model_sba_all_temp$ff_area== "80-90",
+                     c("area")]<-9
+model_sba_all_temp[model_sba_all_temp$ff_area== "90-100",
+                     c("area")]<-10
+
+model_sba_all_temp[model_sba_all_temp$type== 1,
+                     c("vegetation")]<-"PF"
+model_sba_all_temp[model_sba_all_temp$type== 2,
+                     c("vegetation")]<-"SF_early"
+model_sba_all_temp[model_sba_all_temp$type== 3,
+                     c("vegetation")]<-"SF_intermediate"
+model_sba_all_temp[model_sba_all_temp$type== 4,
+                     c("vegetation")]<-"SF_advanced"
+
+```
+
+```{r}
+
+# Reordenar os níveis de 'Tipo'
+model_sba_all_temp <- model_sba_all_temp %>%
+  mutate(vegetation = factor(vegetation, levels = c("PF", "SF_early", "SF_intermediate", "SF_advanced")))
+
+m1_temp_sba <- model_sba_all_temp %>%
+  ggplot(aes(x = area*10, y = Temp))+
+  theme_bw()+
+  geom_point(aes(x = area*10, y = Temp, color = vegetation)) + 
+  geom_line(aes(y = predicted, group = vegetation, color = vegetation), size = 1)+
+    scale_color_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
+                     name = NULL,  
+                     labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +  
+    scale_fill_manual(values = c("darkgreen", "#ACD39E", "#5AAE61", "#1B7837"), 
+                    name = NULL,  
+                    labels = c("PF", "SF early", "SF intermediate", "SF advanced")) +
+  scale_y_continuous(breaks = seq(23, 27, by = 0.5)) +
+  ggthemes::theme_few() +
+  facet_wrap(~Ano, nrow = 4, ncol = 6) +
+  labs(x = "Fractional forest coverage (%)", 
+       y = "Predicted temperature (°C) - SBA",
+       color = "") +
+  theme(legend.position = "top",
+        text = element_text(family = "serif"),
+        axis.title = element_text(size = 16, face = "bold"),
+        strip.text = element_text(face = "bold", size = 12),
+        legend.text = element_text(size = 14, face = "bold"),  # Tamanho do texto da legenda
+        legend.title = element_text(face = "bold", size = 14),
+        plot.title = element_text(size = 14, face = "bold", hjust = 0.5),  # Centraliza título
+        axis.text = element_text(size = 12))
+
+m1_temp_sba
+
+ggsave("fig/supplemental_material/predicted_temp_SBA.png", bg = "white",
+       dpi = 600, width = 10, height = 8)
+
+```
+
+## Painel Predict all variables
+
+```{r}
+
+# Combinar os três painéis em um único layout 3x3
+painel_pred_fixed <- ggarrange(
+  p1_pred_prec, p2_pred_evapo, p3_pred_temp,
+  ncol = 1, nrow = 3,
+  labels = c("A", "B", "C"),
+  font.label = list(color = "black", face = "bold", size = 14, family = "serif"),
+  align = "v",
+  heights = c(1, 1, 1)
+)
+
+# Visualizar
+painel_pred_fixed
+
+# Salvar
+ggsave("fig/supplemental_material/predicted_observed_all_vars.png",
+       plot = painel_pred_fixed,
+       bg = "white", dpi = 600, width = 10, height = 12)
+
+```
+
+### Heterocedasticidade
+
+```{r}
+
+# Combinar os três painéis em um único layout 3x3
+painel_het <- ggarrange(
+  painel_het_prec, painel_het_evapo, painel_het_temp,
+  ncol = 1, nrow = 3,
+  labels = c("A", "B", "C"),
+  font.label = list(color = "black", face = "bold", size = 14, family = "serif"),
+  align = "v",
+  heights = c(1, 1, 1)
+)
+
+# Visualizar
+painel_het
+
+# Salvar
+ggsave("fig/supplemental_material/hetero_residuals_lme_all_vars.png",
+       plot = painel_het,
+       bg = "white", dpi = 600, width = 10, height = 12)
+
+```
+
+### QQ Plot
+
+```{r}
+
+# Combinar os três painéis em um único layout 3x3
+painel_qq <- ggarrange(
+  painel_qq_prec, painel_qq_evapo, painel_qq_temp,
+  ncol = 1, nrow = 3,
+  labels = c("A", "B", "C"),
+  font.label = list(color = "black", face = "bold", size = 14, family = "serif"),
+  align = "v",
+  heights = c(1, 1, 1)
+)
+
+# Visualizar
+painel_qq
+
+# Salvar
+ggsave("fig/supplemental_material/qqplot_all_vars.png",
+       plot = painel_qq,
+       bg = "white", dpi = 600, width = 10, height = 12)
+
+```
+
+
+## Painel fixed and random effects
+
+```{r}
+
+# Fixed Effects
+
+  # Ajuste das margens
+  p1_point_prec <- final_panel_prec + 
+  scale_x_discrete(expand = c(0.05, 0.05)) + 
+  theme(plot.margin = margin(t = 10, r = 20, b = 5, l = 30))
+
+  p1_point_evapo <- final_panel_evapo + 
+    scale_x_discrete(expand = c(0.05, 0.05)) + 
+    theme(plot.margin = margin(t = 5, r = 20, b = 5, l = 30)) 
+  
+  p1_point_temp <- final_panel_temp + 
+    scale_x_discrete(expand = c(0.05, 0.05)) + 
+    theme(plot.margin = margin(t = 5, r = 20, b = 10, l = 30))
+  
+  
+  # Criar painel com espaçamento ajustado
+  painel_fixed <- ggarrange(
+    p1_point_prec, p1_point_evapo, p1_point_temp,
+    ncol = 1, nrow = 3,
+    labels = c("A", "B", "C"),  # Letras dos subplots
+    font.label = list(color = "black", face = "bold", size = 14, family = "serif"),
+    align = "v",                # Alinhamento vertical
+    heights = c(1, 1, 1)        # Força os plots a terem alturas iguais
+  )
+  
+  # Salvar figura final
+  ggsave("fig/painels/effect_fix_climate_x_fractional_forest.png", 
+         plot = painel_fixed, dpi = 600, width = 10, height = 12, bg = "white")
+  
+  ggsave("fig/painels/effect_fix_climate_x_fractional_forest.pdf", 
+         plot = painel_fixed, device = cairo_pdf, width = 10, height = 12, bg = "white")
+
+  painel_fixed
+  
+# Random Effects
+  
+  # Ajuste das margens
+  p1_rand_prec <- p1_rand_prec + 
+    scale_x_discrete(expand = c(0.05, 0.05)) + 
+    theme(plot.margin = margin(t = 10, r = 10, b = 5, l = 20))
+  
+  p2_rand_evapo <- p1_rand_evapo + 
+    scale_x_discrete(expand = c(0.05, 0.05)) + 
+    theme(plot.margin = margin(t = 5, r = 10, b = 5, l = 20)) 
+  
+  p3_rand_temp <- p1_rand_temp + 
+    #scale_x_discrete(expand = c(0.05, 0.05)) + 
+    theme(plot.margin = margin(t = 5, r = 10, b = 10, l = 20))
+  
+  
+  # Criar painel com espaçamento ajustado
+  painel_random <- ggarrange(
+    p1_rand_prec, p2_rand_evapo, p3_rand_temp,
+    ncol = 1, nrow = 3,
+    labels = c("A", "B", "C"),  # Letras dos subplots
+    font.label = list(color = "black", face = "bold", size = 14, family = "serif"),
+    align = "v",                # Alinhamento vertical
+    heights = c(1, 1, 1)        # Força os plots a terem alturas iguais
+  )
+  
+  painel_random
+  
+  # Salvar figura final
+  ggsave("fig/painels/effect_rand_pf_sf.png",
+         dpi = 600, width = 10, height = 12, bg = "white")
+  
+  ggsave("fig/painels/effect_rand_pf_sf.pdf",
+         width = 10, height = 12, bg = "white")
+  
+```
