@@ -1,7 +1,7 @@
 # About
 
 <div style="text-align: center;">
-  <img src="fig/Study_area.png" style="width: 500px; height: 300px;">
+  <img src="fig/Study_area.png" style="width: 80%; max-width: 900px; height:auto;">
 </div>
  
 <div style="text-align: justify;">
