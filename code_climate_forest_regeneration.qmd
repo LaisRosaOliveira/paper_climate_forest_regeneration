@@ -318,7 +318,7 @@ all_lulc_prec_stages <- all_lulc_prec %>%
                           Tipo == "SF" & idade == "10-20" ~ "SF_intermediate",
                           Tipo == "SF" & idade == "> 20" ~ "SF_advanced",
                           TRUE ~ NA_character_)) %>% 
-  filter(!is.na(Tipo))  # Remove linhas que não se encaixam nas categorias definidas
+  filter(!is.na(Tipo))  
 
 
 all_lulc_prec_final <- all_lulc_prec_stages %>% 
@@ -391,15 +391,15 @@ for (region in unique(all_pf_sf_prec$region)) {
     data_subset <- all_pf_sf_prec %>%
       filter(region == !!region, ff_area == !!ff_area)
     
-    # Verificar se há dados suficientes para realizar o teste (precisa de pelo menos 2 tipos)
+    # Verificar se há dados suficientes para realizar o teste 
     if (nrow(data_subset) > 1 && length(unique(data_subset$Tipo)) > 1) {
       try({
         # Realizar o teste de homocedasticidade Levene
         levene_test_prec <- leveneTest(Prec ~ Tipo, data = data_subset)
-        p_value <- levene_test_prec$`Pr(>F)`[1]  # Extraindo o valor p
+        p_value <- levene_test_prec$`Pr(>F)`[1]  
       }, silent = TRUE)
     } else {
-      p_value <- NA  # Insere NA se não houver dados suficientes
+      p_value <- NA  
     }
     
     # Adicionar o resultado ao vetor de resultados apenas se o p_value não for nulo
@@ -435,16 +435,16 @@ for (region in unique(all_pf_sf_prec$region)) {
     data_subset <- all_pf_sf_prec %>%
       filter(region == !!region, ff_area == !!ff_area)
     
-    # Verificar se há dados suficientes para realizar o teste (precisa de pelo menos 2 tipos)
+    # Verificar se há dados suficientes para realizar o teste 
     if (nrow(data_subset) > 1 && length(unique(data_subset$Tipo)) > 1) {
       try({
         # Realizar o teste de correlação de Kendall entre 'Prec' e 'Tipo'
         cor_test <- cor.test(as.numeric(data_subset$Prec), as.numeric(data_subset$Tipo), method = "kendall")
-        p_value <- cor_test$p.value  # Extraindo o valor p
-        cor_value <- cor_test$estimate  # Extraindo o valor da correlação
+        p_value <- cor_test$p.value  
+        cor_value <- cor_test$estimate  
       }, silent = TRUE)
     } else {
-      p_value <- NA  # Insere NA se não houver dados suficientes
+      p_value <- NA  
       cor_value <- NA
     }
     
@@ -741,7 +741,7 @@ all_lulc_evapo_stages <- all_lulc_evapo %>%
                           Tipo == "SF" & idade == "10-20" ~ "SF_intermediate", 
                           Tipo == "SF" & idade == "> 20" ~ "SF_advanced",
                           TRUE ~ NA_character_ )) %>% 
-  filter(!is.na(Tipo))  # Remove linhas que não se encaixam nas categorias definidas
+  filter(!is.na(Tipo))  
 
 
 all_lulc_evapo_final <- all_lulc_evapo_stages %>% 
@@ -812,15 +812,15 @@ for (region in unique(all_pf_sf_evapo$region)) {
     data_subset <- all_pf_sf_evapo %>%
       filter(region == !!region, ff_area == !!ff_area)
     
-    # Verificar se há dados suficientes para realizar o teste (precisa de pelo menos 2 tipos)
+    # Verificar se há dados suficientes para realizar o teste 
     if (nrow(data_subset) > 1 && length(unique(data_subset$Tipo)) > 1) {
       try({
         # Realizar o teste de homocedasticidade Levene
         levene_test_evapo <- leveneTest(Evapo ~ Tipo, data = data_subset)
-        p_value <- levene_test_evapo$`Pr(>F)`[1]  # Extraindo o valor p
+        p_value <- levene_test_evapo$`Pr(>F)`[1]  
       }, silent = TRUE)
     } else {
-      p_value <- NA  # Insere NA se não houver dados suficientes
+      p_value <- NA  
     }
     
     # Adicionar o resultado ao vetor de resultados apenas se o p_value não for nulo
@@ -856,16 +856,16 @@ for (region in unique(all_pf_sf_evapo$region)) {
     data_subset <- all_pf_sf_evapo %>%
       filter(region == !!region, ff_area == !!ff_area)
     
-    # Verificar se há dados suficientes para realizar o teste (precisa de pelo menos 2 tipos)
+    # Verificar se há dados suficientes para realizar o teste 
     if (nrow(data_subset) > 1 && length(unique(data_subset$Tipo)) > 1) {
       try({
         # Realizar o teste de correlação de Kendall entre 'Evapo' e 'Tipo'
         cor_test <- cor.test(as.numeric(data_subset$Evapo), as.numeric(data_subset$Tipo), method = "kendall")
-        p_value <- cor_test$p.value  # Extraindo o valor p
-        cor_value <- cor_test$estimate  # Extraindo o valor da correlação
+        p_value <- cor_test$p.value  
+        cor_value <- cor_test$estimate  
       }, silent = TRUE)
     } else {
-      p_value <- NA  # Insere NA se não houver dados suficientes
+      p_value <- NA  
       cor_value <- NA
     }
     
@@ -907,7 +907,7 @@ area_ranges <- c("1-10", "10-20", "20-30", "30-40", "40-50",
 regions <- c("CBA", "EBA", "SBA")
 
 # Criando um DataFrame vazio para armazenar os resultados
-significance_results_t_evapo <- data.frame(Intervalo = area_ranges)  # Adiciona a coluna de intervalos
+significance_results_t_evapo <- data.frame(Intervalo = area_ranges)  
 
 # Loop por cada região
 for (region in regions) {
@@ -1166,7 +1166,7 @@ all_lulc_temp_stages <- all_lulc_temp %>%
                           Tipo == "SF" & idade == "> 20" ~ "SF_advanced",
                           TRUE ~ NA_character_ )) %>% 
 
-  filter(!is.na(Tipo))  # Remove linhas que não se encaixam nas categorias definidas
+  filter(!is.na(Tipo))  
 
 
 all_lulc_temp_final <- all_lulc_temp_stages %>% 
@@ -1236,15 +1236,15 @@ for (region in unique(all_pf_sf_temp$region)) {
     data_subset <- all_pf_sf_temp %>%
       filter(region == !!region, ff_area == !!ff_area)
     
-    # Verificar se há dados suficientes para realizar o teste (precisa de pelo menos 2 tipos)
+    # Verificar se há dados suficientes para realizar o teste 
     if (nrow(data_subset) > 1 && length(unique(data_subset$Tipo)) > 1) {
       try({
         # Realizar o teste de homocedasticidade Levene
         levene_test_temp <- leveneTest(Temp ~ Tipo, data = data_subset)
-        p_value <- levene_test_temp$`Pr(>F)`[1]  # Extraindo o valor p
+        p_value <- levene_test_temp$`Pr(>F)`[1]  
       }, silent = TRUE)
     } else {
-      p_value <- NA  # Insere NA se não houver dados suficientes
+      p_value <- NA  
     }
     
     # Adicionar o resultado ao vetor de resultados apenas se o p_value não for nulo
@@ -1280,16 +1280,16 @@ for (region in unique(all_pf_sf_temp$region)) {
     data_subset <- all_pf_sf_temp %>%
       filter(region == !!region, ff_area == !!ff_area)
     
-    # Verificar se há dados suficientes para realizar o teste (precisa de pelo menos 2 tipos)
+    # Verificar se há dados suficientes para realizar o teste 
     if (nrow(data_subset) > 1 && length(unique(data_subset$Tipo)) > 1) {
       try({
         # Realizar o teste de correlação de Kendall entre 'Temp' e 'Tipo'
         cor_test <- cor.test(as.numeric(data_subset$Temp), as.numeric(data_subset$Tipo), method = "kendall")
-        p_value <- cor_test$p.value  # Extraindo o valor p
-        cor_value <- cor_test$estimate  # Extraindo o valor da correlação
+        p_value <- cor_test$p.value  
+        cor_value <- cor_test$estimate  
       }, silent = TRUE)
     } else {
-      p_value <- NA  # Insere NA se não houver dados suficientes
+      p_value <- NA  
       cor_value <- NA
     }
     
@@ -1331,7 +1331,7 @@ area_ranges <- c("1-10", "10-20", "20-30", "30-40", "40-50",
 regions <- c("CBA", "EBA", "SBA")
 
 # Criando um DataFrame vazio para armazenar os resultados
-significance_results_t_temp <- data.frame(Intervalo = area_ranges)  # Adiciona a coluna de intervalos
+significance_results_t_temp <- data.frame(Intervalo = area_ranges)  
 
 # Loop por cada região
 for (region in regions) {
@@ -1397,7 +1397,7 @@ area_ranges <- c("1-10", "10-20", "20-30", "30-40", "40-50",
 regions <- c("CBA", "EBA", "SBA")
 
 # Criando um DataFrame vazio para armazenar os resultados
-significance_results_w_temp <- data.frame(Intervalo = area_ranges)  # Adiciona a coluna de intervalos
+significance_results_w_temp <- data.frame(Intervalo = area_ranges)  
 
 # Loop por cada região
 for (region in regions) {
@@ -1543,15 +1543,15 @@ gc()
 # Ajuste das margens
 p_ret_prec_w <- p_ast_prec_w + 
   scale_x_discrete(expand = c(0.05, 0.05)) + 
-  theme(plot.margin = margin(t = 10, r = 10, b = 5, l = 20))  # Ajuste de margens
+  theme(plot.margin = margin(t = 10, r = 10, b = 5, l = 20))  
 
 p_ret_evapo_w <- p_ast_evapo_w + 
   scale_x_discrete(expand = c(0.05, 0.05)) + 
-  theme(plot.margin = margin(t = 5, r = 10, b = 5, l = 20))   # Ajuste de margens
+  theme(plot.margin = margin(t = 5, r = 10, b = 5, l = 20))   
 
 p_ret_temp_w <- p_ast_temp_w + 
   scale_x_discrete(expand = c(0.05, 0.05)) + 
-  theme(plot.margin = margin(t = 5, r = 10, b = 10, l = 20))  # Ajuste de margens
+  theme(plot.margin = margin(t = 5, r = 10, b = 10, l = 20))  
 
 
 # Criar painel com espaçamento ajustado
