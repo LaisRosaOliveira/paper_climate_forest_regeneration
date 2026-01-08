@@ -523,7 +523,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb11-39"><a href="#cb11-39" aria-hidden="true" tabindex="-1"></a>                          Tipo <span class="sc">==</span> <span class="st">"SF"</span> <span class="sc">&amp;</span> idade <span class="sc">==</span> <span class="st">"10-20"</span> <span class="sc">~</span> <span class="st">"SF_intermediate"</span>,</span>
 <span id="cb11-40"><a href="#cb11-40" aria-hidden="true" tabindex="-1"></a>                          Tipo <span class="sc">==</span> <span class="st">"SF"</span> <span class="sc">&amp;</span> idade <span class="sc">==</span> <span class="st">"&gt; 20"</span> <span class="sc">~</span> <span class="st">"SF_advanced"</span>,</span>
 <span id="cb11-41"><a href="#cb11-41" aria-hidden="true" tabindex="-1"></a>                          <span class="cn">TRUE</span> <span class="sc">~</span> <span class="cn">NA_character_</span>)) <span class="sc">%&gt;%</span> </span>
-<span id="cb11-42"><a href="#cb11-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(Tipo))  <span class="co"># Remove linhas que não se encaixam nas categorias definidas</span></span>
+<span id="cb11-42"><a href="#cb11-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(Tipo))  </span>
 <span id="cb11-43"><a href="#cb11-43" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb11-44"><a href="#cb11-44" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb11-45"><a href="#cb11-45" aria-hidden="true" tabindex="-1"></a>all_lulc_prec_final <span class="ot">&lt;-</span> all_lulc_prec_stages <span class="sc">%&gt;%</span> </span>
@@ -609,15 +609,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>    data_subset <span class="ot">&lt;-</span> all_pf_sf_prec <span class="sc">%&gt;%</span></span>
 <span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(region <span class="sc">==</span> <span class="sc">!!</span>region, ff_area <span class="sc">==</span> <span class="sc">!!</span>ff_area)</span>
 <span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Verificar se há dados suficientes para realizar o teste (precisa de pelo menos 2 tipos)</span></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Verificar se há dados suficientes para realizar o teste </span></span>
 <span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">nrow</span>(data_subset) <span class="sc">&gt;</span> <span class="dv">1</span> <span class="sc">&amp;&amp;</span> <span class="fu">length</span>(<span class="fu">unique</span>(data_subset<span class="sc">$</span>Tipo)) <span class="sc">&gt;</span> <span class="dv">1</span>) {</span>
 <span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>      <span class="fu">try</span>({</span>
 <span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Realizar o teste de homocedasticidade Levene</span></span>
 <span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>        levene_test_prec <span class="ot">&lt;-</span> <span class="fu">leveneTest</span>(Prec <span class="sc">~</span> Tipo, <span class="at">data =</span> data_subset)</span>
-<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>        p_value <span class="ot">&lt;-</span> levene_test_prec<span class="sc">$</span><span class="st">`</span><span class="at">Pr(&gt;F)</span><span class="st">`</span>[<span class="dv">1</span>]  <span class="co"># Extraindo o valor p</span></span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>        p_value <span class="ot">&lt;-</span> levene_test_prec<span class="sc">$</span><span class="st">`</span><span class="at">Pr(&gt;F)</span><span class="st">`</span>[<span class="dv">1</span>]  </span>
 <span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>      }, <span class="at">silent =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
-<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>      p_value <span class="ot">&lt;-</span> <span class="cn">NA</span>  <span class="co"># Insere NA se não houver dados suficientes</span></span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>      p_value <span class="ot">&lt;-</span> <span class="cn">NA</span>  </span>
 <span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a>    }</span>
 <span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a>    </span>
 <span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Adicionar o resultado ao vetor de resultados apenas se o p_value não for nulo</span></span>
@@ -685,16 +685,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>    data_subset <span class="ot">&lt;-</span> all_pf_sf_prec <span class="sc">%&gt;%</span></span>
 <span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(region <span class="sc">==</span> <span class="sc">!!</span>region, ff_area <span class="sc">==</span> <span class="sc">!!</span>ff_area)</span>
 <span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Verificar se há dados suficientes para realizar o teste (precisa de pelo menos 2 tipos)</span></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Verificar se há dados suficientes para realizar o teste </span></span>
 <span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">nrow</span>(data_subset) <span class="sc">&gt;</span> <span class="dv">1</span> <span class="sc">&amp;&amp;</span> <span class="fu">length</span>(<span class="fu">unique</span>(data_subset<span class="sc">$</span>Tipo)) <span class="sc">&gt;</span> <span class="dv">1</span>) {</span>
 <span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>      <span class="fu">try</span>({</span>
 <span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Realizar o teste de correlação de Kendall entre 'Prec' e 'Tipo'</span></span>
 <span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>        cor_test <span class="ot">&lt;-</span> <span class="fu">cor.test</span>(<span class="fu">as.numeric</span>(data_subset<span class="sc">$</span>Prec), <span class="fu">as.numeric</span>(data_subset<span class="sc">$</span>Tipo), <span class="at">method =</span> <span class="st">"kendall"</span>)</span>
-<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>        p_value <span class="ot">&lt;-</span> cor_test<span class="sc">$</span>p.value  <span class="co"># Extraindo o valor p</span></span>
-<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>        cor_value <span class="ot">&lt;-</span> cor_test<span class="sc">$</span>estimate  <span class="co"># Extraindo o valor da correlação</span></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>        p_value <span class="ot">&lt;-</span> cor_test<span class="sc">$</span>p.value  </span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>        cor_value <span class="ot">&lt;-</span> cor_test<span class="sc">$</span>estimate  </span>
 <span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a>      }, <span class="at">silent =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
-<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>      p_value <span class="ot">&lt;-</span> <span class="cn">NA</span>  <span class="co"># Insere NA se não houver dados suficientes</span></span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>      p_value <span class="ot">&lt;-</span> <span class="cn">NA</span>  </span>
 <span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>      cor_value <span class="ot">&lt;-</span> <span class="cn">NA</span></span>
 <span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a>    }</span>
 <span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a>    </span>
@@ -720,7 +720,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell-output cell-output-stdout">
 <pre><code>          used (Mb) gc trigger  (Mb) max used  (Mb)
 Ncells 1551429 82.9    2951642 157.7  2161542 115.5
-Vcells 2791553 21.3    8388608  64.0  3894952  29.8</code></pre>
+Vcells 2791174 21.3    8388608  64.0  3893788  29.8</code></pre>
 </div>
 </div>
 </section>
@@ -790,7 +790,7 @@ Vcells 2791553 21.3    8388608  64.0  3894952  29.8</code></pre>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used (Mb) gc trigger  (Mb) max used  (Mb)
 Ncells 1554154 83.1    2951642 157.7  2951642 157.7
-Vcells 2799174 21.4    8388608  64.0  3983595  30.4</code></pre>
+Vcells 2798794 21.4    8388608  64.0  3982319  30.4</code></pre>
 </div>
 </div>
 </section>
@@ -859,7 +859,7 @@ Vcells 2799174 21.4    8388608  64.0  3983595  30.4</code></pre>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used (Mb) gc trigger  (Mb) max used  (Mb)
 Ncells 1558202 83.3    2951642 157.7  2951642 157.7
-Vcells 2809389 21.5    8388608  64.0  4125453  31.5</code></pre>
+Vcells 2809009 21.5    8388608  64.0  4125073  31.5</code></pre>
 </div>
 </div>
 <section id="plot-com-significance" class="level4">
@@ -952,7 +952,7 @@ Vcells 2809389 21.5    8388608  64.0  4125453  31.5</code></pre>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used  (Mb) gc trigger  (Mb) max used  (Mb)
 Ncells 1913012 102.2    2951642 157.7  2951642 157.7
-Vcells 3479462  26.6    8388608  64.0  5680635  43.4</code></pre>
+Vcells 3479082  26.6    8388608  64.0  5680255  43.4</code></pre>
 </div>
 </div>
 </section>
@@ -1010,7 +1010,7 @@ Vcells 3479462  26.6    8388608  64.0  5680635  43.4</code></pre>
 <span id="cb25-45"><a href="#cb25-45" aria-hidden="true" tabindex="-1"></a>                          Tipo <span class="sc">==</span> <span class="st">"SF"</span> <span class="sc">&amp;</span> idade <span class="sc">==</span> <span class="st">"10-20"</span> <span class="sc">~</span> <span class="st">"SF_intermediate"</span>, </span>
 <span id="cb25-46"><a href="#cb25-46" aria-hidden="true" tabindex="-1"></a>                          Tipo <span class="sc">==</span> <span class="st">"SF"</span> <span class="sc">&amp;</span> idade <span class="sc">==</span> <span class="st">"&gt; 20"</span> <span class="sc">~</span> <span class="st">"SF_advanced"</span>,</span>
 <span id="cb25-47"><a href="#cb25-47" aria-hidden="true" tabindex="-1"></a>                          <span class="cn">TRUE</span> <span class="sc">~</span> <span class="cn">NA_character_</span> )) <span class="sc">%&gt;%</span> </span>
-<span id="cb25-48"><a href="#cb25-48" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(Tipo))  <span class="co"># Remove linhas que não se encaixam nas categorias definidas</span></span>
+<span id="cb25-48"><a href="#cb25-48" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(Tipo))  </span>
 <span id="cb25-49"><a href="#cb25-49" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb25-50"><a href="#cb25-50" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb25-51"><a href="#cb25-51" aria-hidden="true" tabindex="-1"></a>all_lulc_evapo_final <span class="ot">&lt;-</span> all_lulc_evapo_stages <span class="sc">%&gt;%</span> </span>
@@ -1094,15 +1094,15 @@ Vcells 3479462  26.6    8388608  64.0  5680635  43.4</code></pre>
 <span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a>    data_subset <span class="ot">&lt;-</span> all_pf_sf_evapo <span class="sc">%&gt;%</span></span>
 <span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(region <span class="sc">==</span> <span class="sc">!!</span>region, ff_area <span class="sc">==</span> <span class="sc">!!</span>ff_area)</span>
 <span id="cb28-20"><a href="#cb28-20" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb28-21"><a href="#cb28-21" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Verificar se há dados suficientes para realizar o teste (precisa de pelo menos 2 tipos)</span></span>
+<span id="cb28-21"><a href="#cb28-21" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Verificar se há dados suficientes para realizar o teste </span></span>
 <span id="cb28-22"><a href="#cb28-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">nrow</span>(data_subset) <span class="sc">&gt;</span> <span class="dv">1</span> <span class="sc">&amp;&amp;</span> <span class="fu">length</span>(<span class="fu">unique</span>(data_subset<span class="sc">$</span>Tipo)) <span class="sc">&gt;</span> <span class="dv">1</span>) {</span>
 <span id="cb28-23"><a href="#cb28-23" aria-hidden="true" tabindex="-1"></a>      <span class="fu">try</span>({</span>
 <span id="cb28-24"><a href="#cb28-24" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Realizar o teste de homocedasticidade Levene</span></span>
 <span id="cb28-25"><a href="#cb28-25" aria-hidden="true" tabindex="-1"></a>        levene_test_evapo <span class="ot">&lt;-</span> <span class="fu">leveneTest</span>(Evapo <span class="sc">~</span> Tipo, <span class="at">data =</span> data_subset)</span>
-<span id="cb28-26"><a href="#cb28-26" aria-hidden="true" tabindex="-1"></a>        p_value <span class="ot">&lt;-</span> levene_test_evapo<span class="sc">$</span><span class="st">`</span><span class="at">Pr(&gt;F)</span><span class="st">`</span>[<span class="dv">1</span>]  <span class="co"># Extraindo o valor p</span></span>
+<span id="cb28-26"><a href="#cb28-26" aria-hidden="true" tabindex="-1"></a>        p_value <span class="ot">&lt;-</span> levene_test_evapo<span class="sc">$</span><span class="st">`</span><span class="at">Pr(&gt;F)</span><span class="st">`</span>[<span class="dv">1</span>]  </span>
 <span id="cb28-27"><a href="#cb28-27" aria-hidden="true" tabindex="-1"></a>      }, <span class="at">silent =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb28-28"><a href="#cb28-28" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
-<span id="cb28-29"><a href="#cb28-29" aria-hidden="true" tabindex="-1"></a>      p_value <span class="ot">&lt;-</span> <span class="cn">NA</span>  <span class="co"># Insere NA se não houver dados suficientes</span></span>
+<span id="cb28-29"><a href="#cb28-29" aria-hidden="true" tabindex="-1"></a>      p_value <span class="ot">&lt;-</span> <span class="cn">NA</span>  </span>
 <span id="cb28-30"><a href="#cb28-30" aria-hidden="true" tabindex="-1"></a>    }</span>
 <span id="cb28-31"><a href="#cb28-31" aria-hidden="true" tabindex="-1"></a>    </span>
 <span id="cb28-32"><a href="#cb28-32" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Adicionar o resultado ao vetor de resultados apenas se o p_value não for nulo</span></span>
@@ -1170,16 +1170,16 @@ Vcells 3479462  26.6    8388608  64.0  5680635  43.4</code></pre>
 <span id="cb30-16"><a href="#cb30-16" aria-hidden="true" tabindex="-1"></a>    data_subset <span class="ot">&lt;-</span> all_pf_sf_evapo <span class="sc">%&gt;%</span></span>
 <span id="cb30-17"><a href="#cb30-17" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(region <span class="sc">==</span> <span class="sc">!!</span>region, ff_area <span class="sc">==</span> <span class="sc">!!</span>ff_area)</span>
 <span id="cb30-18"><a href="#cb30-18" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb30-19"><a href="#cb30-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Verificar se há dados suficientes para realizar o teste (precisa de pelo menos 2 tipos)</span></span>
+<span id="cb30-19"><a href="#cb30-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Verificar se há dados suficientes para realizar o teste </span></span>
 <span id="cb30-20"><a href="#cb30-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">nrow</span>(data_subset) <span class="sc">&gt;</span> <span class="dv">1</span> <span class="sc">&amp;&amp;</span> <span class="fu">length</span>(<span class="fu">unique</span>(data_subset<span class="sc">$</span>Tipo)) <span class="sc">&gt;</span> <span class="dv">1</span>) {</span>
 <span id="cb30-21"><a href="#cb30-21" aria-hidden="true" tabindex="-1"></a>      <span class="fu">try</span>({</span>
 <span id="cb30-22"><a href="#cb30-22" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Realizar o teste de correlação de Kendall entre 'Evapo' e 'Tipo'</span></span>
 <span id="cb30-23"><a href="#cb30-23" aria-hidden="true" tabindex="-1"></a>        cor_test <span class="ot">&lt;-</span> <span class="fu">cor.test</span>(<span class="fu">as.numeric</span>(data_subset<span class="sc">$</span>Evapo), <span class="fu">as.numeric</span>(data_subset<span class="sc">$</span>Tipo), <span class="at">method =</span> <span class="st">"kendall"</span>)</span>
-<span id="cb30-24"><a href="#cb30-24" aria-hidden="true" tabindex="-1"></a>        p_value <span class="ot">&lt;-</span> cor_test<span class="sc">$</span>p.value  <span class="co"># Extraindo o valor p</span></span>
-<span id="cb30-25"><a href="#cb30-25" aria-hidden="true" tabindex="-1"></a>        cor_value <span class="ot">&lt;-</span> cor_test<span class="sc">$</span>estimate  <span class="co"># Extraindo o valor da correlação</span></span>
+<span id="cb30-24"><a href="#cb30-24" aria-hidden="true" tabindex="-1"></a>        p_value <span class="ot">&lt;-</span> cor_test<span class="sc">$</span>p.value  </span>
+<span id="cb30-25"><a href="#cb30-25" aria-hidden="true" tabindex="-1"></a>        cor_value <span class="ot">&lt;-</span> cor_test<span class="sc">$</span>estimate  </span>
 <span id="cb30-26"><a href="#cb30-26" aria-hidden="true" tabindex="-1"></a>      }, <span class="at">silent =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb30-27"><a href="#cb30-27" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
-<span id="cb30-28"><a href="#cb30-28" aria-hidden="true" tabindex="-1"></a>      p_value <span class="ot">&lt;-</span> <span class="cn">NA</span>  <span class="co"># Insere NA se não houver dados suficientes</span></span>
+<span id="cb30-28"><a href="#cb30-28" aria-hidden="true" tabindex="-1"></a>      p_value <span class="ot">&lt;-</span> <span class="cn">NA</span>  </span>
 <span id="cb30-29"><a href="#cb30-29" aria-hidden="true" tabindex="-1"></a>      cor_value <span class="ot">&lt;-</span> <span class="cn">NA</span></span>
 <span id="cb30-30"><a href="#cb30-30" aria-hidden="true" tabindex="-1"></a>    }</span>
 <span id="cb30-31"><a href="#cb30-31" aria-hidden="true" tabindex="-1"></a>    </span>
@@ -1205,7 +1205,7 @@ Vcells 3479462  26.6    8388608  64.0  5680635  43.4</code></pre>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used (Mb) gc trigger  (Mb) max used  (Mb)
 Ncells 1866247 99.7    2951642 157.7  2951642 157.7
-Vcells 3381275 25.8    8388608  64.0  5680635  43.4</code></pre>
+Vcells 3380859 25.8    8388608  64.0  5680255  43.4</code></pre>
 </div>
 </div>
 </section>
@@ -1224,7 +1224,7 @@ Vcells 3381275 25.8    8388608  64.0  5680635  43.4</code></pre>
 <span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a>regions <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"CBA"</span>, <span class="st">"EBA"</span>, <span class="st">"SBA"</span>)</span>
 <span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Criando um DataFrame vazio para armazenar os resultados</span></span>
-<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a>significance_results_t_evapo <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">Intervalo =</span> area_ranges)  <span class="co"># Adiciona a coluna de intervalos</span></span>
+<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a>significance_results_t_evapo <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">Intervalo =</span> area_ranges)  </span>
 <span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Loop por cada região</span></span>
 <span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (region <span class="cf">in</span> regions) {</span>
@@ -1275,7 +1275,7 @@ Vcells 3381275 25.8    8388608  64.0  5680635  43.4</code></pre>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used (Mb) gc trigger  (Mb) max used  (Mb)
 Ncells 1865980 99.7    2951642 157.7  2951642 157.7
-Vcells 3381411 25.8    8388608  64.0  5680635  43.4</code></pre>
+Vcells 3380994 25.8    8388608  64.0  5680255  43.4</code></pre>
 </div>
 </div>
 </section>
@@ -1344,7 +1344,7 @@ Vcells 3381411 25.8    8388608  64.0  5680635  43.4</code></pre>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used (Mb) gc trigger  (Mb) max used  (Mb)
 Ncells 1865988 99.7    2951642 157.7  2951642 157.7
-Vcells 3383142 25.9    8388608  64.0  5680635  43.4</code></pre>
+Vcells 3382721 25.9    8388608  64.0  5680255  43.4</code></pre>
 </div>
 </div>
 <section id="plot-com-significance-1" class="level4">
@@ -1442,7 +1442,7 @@ Vcells 3383142 25.9    8388608  64.0  5680635  43.4</code></pre>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used  (Mb) gc trigger  (Mb) max used  (Mb)
 Ncells 1931274 103.2    2951642 157.7  2951642 157.7
-Vcells 3532055  27.0    8388608  64.0  5680635  43.4</code></pre>
+Vcells 3531634  27.0    8388608  64.0  5680255  43.4</code></pre>
 </div>
 </div>
 </section>
@@ -1500,7 +1500,7 @@ Vcells 3532055  27.0    8388608  64.0  5680635  43.4</code></pre>
 <span id="cb39-45"><a href="#cb39-45" aria-hidden="true" tabindex="-1"></a>                          Tipo <span class="sc">==</span> <span class="st">"SF"</span> <span class="sc">&amp;</span> idade <span class="sc">==</span> <span class="st">"&gt; 20"</span> <span class="sc">~</span> <span class="st">"SF_advanced"</span>,</span>
 <span id="cb39-46"><a href="#cb39-46" aria-hidden="true" tabindex="-1"></a>                          <span class="cn">TRUE</span> <span class="sc">~</span> <span class="cn">NA_character_</span> )) <span class="sc">%&gt;%</span> </span>
 <span id="cb39-47"><a href="#cb39-47" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-48"><a href="#cb39-48" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(Tipo))  <span class="co"># Remove linhas que não se encaixam nas categorias definidas</span></span>
+<span id="cb39-48"><a href="#cb39-48" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(Tipo))  </span>
 <span id="cb39-49"><a href="#cb39-49" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb39-50"><a href="#cb39-50" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb39-51"><a href="#cb39-51" aria-hidden="true" tabindex="-1"></a>all_lulc_temp_final <span class="ot">&lt;-</span> all_lulc_temp_stages <span class="sc">%&gt;%</span> </span>
@@ -1584,15 +1584,15 @@ Vcells 3532055  27.0    8388608  64.0  5680635  43.4</code></pre>
 <span id="cb42-18"><a href="#cb42-18" aria-hidden="true" tabindex="-1"></a>    data_subset <span class="ot">&lt;-</span> all_pf_sf_temp <span class="sc">%&gt;%</span></span>
 <span id="cb42-19"><a href="#cb42-19" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(region <span class="sc">==</span> <span class="sc">!!</span>region, ff_area <span class="sc">==</span> <span class="sc">!!</span>ff_area)</span>
 <span id="cb42-20"><a href="#cb42-20" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb42-21"><a href="#cb42-21" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Verificar se há dados suficientes para realizar o teste (precisa de pelo menos 2 tipos)</span></span>
+<span id="cb42-21"><a href="#cb42-21" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Verificar se há dados suficientes para realizar o teste </span></span>
 <span id="cb42-22"><a href="#cb42-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">nrow</span>(data_subset) <span class="sc">&gt;</span> <span class="dv">1</span> <span class="sc">&amp;&amp;</span> <span class="fu">length</span>(<span class="fu">unique</span>(data_subset<span class="sc">$</span>Tipo)) <span class="sc">&gt;</span> <span class="dv">1</span>) {</span>
 <span id="cb42-23"><a href="#cb42-23" aria-hidden="true" tabindex="-1"></a>      <span class="fu">try</span>({</span>
 <span id="cb42-24"><a href="#cb42-24" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Realizar o teste de homocedasticidade Levene</span></span>
 <span id="cb42-25"><a href="#cb42-25" aria-hidden="true" tabindex="-1"></a>        levene_test_temp <span class="ot">&lt;-</span> <span class="fu">leveneTest</span>(Temp <span class="sc">~</span> Tipo, <span class="at">data =</span> data_subset)</span>
-<span id="cb42-26"><a href="#cb42-26" aria-hidden="true" tabindex="-1"></a>        p_value <span class="ot">&lt;-</span> levene_test_temp<span class="sc">$</span><span class="st">`</span><span class="at">Pr(&gt;F)</span><span class="st">`</span>[<span class="dv">1</span>]  <span class="co"># Extraindo o valor p</span></span>
+<span id="cb42-26"><a href="#cb42-26" aria-hidden="true" tabindex="-1"></a>        p_value <span class="ot">&lt;-</span> levene_test_temp<span class="sc">$</span><span class="st">`</span><span class="at">Pr(&gt;F)</span><span class="st">`</span>[<span class="dv">1</span>]  </span>
 <span id="cb42-27"><a href="#cb42-27" aria-hidden="true" tabindex="-1"></a>      }, <span class="at">silent =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb42-28"><a href="#cb42-28" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
-<span id="cb42-29"><a href="#cb42-29" aria-hidden="true" tabindex="-1"></a>      p_value <span class="ot">&lt;-</span> <span class="cn">NA</span>  <span class="co"># Insere NA se não houver dados suficientes</span></span>
+<span id="cb42-29"><a href="#cb42-29" aria-hidden="true" tabindex="-1"></a>      p_value <span class="ot">&lt;-</span> <span class="cn">NA</span>  </span>
 <span id="cb42-30"><a href="#cb42-30" aria-hidden="true" tabindex="-1"></a>    }</span>
 <span id="cb42-31"><a href="#cb42-31" aria-hidden="true" tabindex="-1"></a>    </span>
 <span id="cb42-32"><a href="#cb42-32" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Adicionar o resultado ao vetor de resultados apenas se o p_value não for nulo</span></span>
@@ -1660,16 +1660,16 @@ Vcells 3532055  27.0    8388608  64.0  5680635  43.4</code></pre>
 <span id="cb44-16"><a href="#cb44-16" aria-hidden="true" tabindex="-1"></a>    data_subset <span class="ot">&lt;-</span> all_pf_sf_temp <span class="sc">%&gt;%</span></span>
 <span id="cb44-17"><a href="#cb44-17" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(region <span class="sc">==</span> <span class="sc">!!</span>region, ff_area <span class="sc">==</span> <span class="sc">!!</span>ff_area)</span>
 <span id="cb44-18"><a href="#cb44-18" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb44-19"><a href="#cb44-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Verificar se há dados suficientes para realizar o teste (precisa de pelo menos 2 tipos)</span></span>
+<span id="cb44-19"><a href="#cb44-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Verificar se há dados suficientes para realizar o teste </span></span>
 <span id="cb44-20"><a href="#cb44-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">nrow</span>(data_subset) <span class="sc">&gt;</span> <span class="dv">1</span> <span class="sc">&amp;&amp;</span> <span class="fu">length</span>(<span class="fu">unique</span>(data_subset<span class="sc">$</span>Tipo)) <span class="sc">&gt;</span> <span class="dv">1</span>) {</span>
 <span id="cb44-21"><a href="#cb44-21" aria-hidden="true" tabindex="-1"></a>      <span class="fu">try</span>({</span>
 <span id="cb44-22"><a href="#cb44-22" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Realizar o teste de correlação de Kendall entre 'Temp' e 'Tipo'</span></span>
 <span id="cb44-23"><a href="#cb44-23" aria-hidden="true" tabindex="-1"></a>        cor_test <span class="ot">&lt;-</span> <span class="fu">cor.test</span>(<span class="fu">as.numeric</span>(data_subset<span class="sc">$</span>Temp), <span class="fu">as.numeric</span>(data_subset<span class="sc">$</span>Tipo), <span class="at">method =</span> <span class="st">"kendall"</span>)</span>
-<span id="cb44-24"><a href="#cb44-24" aria-hidden="true" tabindex="-1"></a>        p_value <span class="ot">&lt;-</span> cor_test<span class="sc">$</span>p.value  <span class="co"># Extraindo o valor p</span></span>
-<span id="cb44-25"><a href="#cb44-25" aria-hidden="true" tabindex="-1"></a>        cor_value <span class="ot">&lt;-</span> cor_test<span class="sc">$</span>estimate  <span class="co"># Extraindo o valor da correlação</span></span>
+<span id="cb44-24"><a href="#cb44-24" aria-hidden="true" tabindex="-1"></a>        p_value <span class="ot">&lt;-</span> cor_test<span class="sc">$</span>p.value  </span>
+<span id="cb44-25"><a href="#cb44-25" aria-hidden="true" tabindex="-1"></a>        cor_value <span class="ot">&lt;-</span> cor_test<span class="sc">$</span>estimate  </span>
 <span id="cb44-26"><a href="#cb44-26" aria-hidden="true" tabindex="-1"></a>      }, <span class="at">silent =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb44-27"><a href="#cb44-27" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
-<span id="cb44-28"><a href="#cb44-28" aria-hidden="true" tabindex="-1"></a>      p_value <span class="ot">&lt;-</span> <span class="cn">NA</span>  <span class="co"># Insere NA se não houver dados suficientes</span></span>
+<span id="cb44-28"><a href="#cb44-28" aria-hidden="true" tabindex="-1"></a>      p_value <span class="ot">&lt;-</span> <span class="cn">NA</span>  </span>
 <span id="cb44-29"><a href="#cb44-29" aria-hidden="true" tabindex="-1"></a>      cor_value <span class="ot">&lt;-</span> <span class="cn">NA</span></span>
 <span id="cb44-30"><a href="#cb44-30" aria-hidden="true" tabindex="-1"></a>    }</span>
 <span id="cb44-31"><a href="#cb44-31" aria-hidden="true" tabindex="-1"></a>    </span>
@@ -1695,7 +1695,7 @@ Vcells 3532055  27.0    8388608  64.0  5680635  43.4</code></pre>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used  (Mb) gc trigger  (Mb) max used  (Mb)
 Ncells 1885046 100.7    2951642 157.7  2951642 157.7
-Vcells 3437060  26.3    8388608  64.0  5680635  43.4</code></pre>
+Vcells 3436604  26.3    8388608  64.0  5680255  43.4</code></pre>
 </div>
 </div>
 </section>
@@ -1714,7 +1714,7 @@ Vcells 3437060  26.3    8388608  64.0  5680635  43.4</code></pre>
 <span id="cb46-10"><a href="#cb46-10" aria-hidden="true" tabindex="-1"></a>regions <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"CBA"</span>, <span class="st">"EBA"</span>, <span class="st">"SBA"</span>)</span>
 <span id="cb46-11"><a href="#cb46-11" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb46-12"><a href="#cb46-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Criando um DataFrame vazio para armazenar os resultados</span></span>
-<span id="cb46-13"><a href="#cb46-13" aria-hidden="true" tabindex="-1"></a>significance_results_t_temp <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">Intervalo =</span> area_ranges)  <span class="co"># Adiciona a coluna de intervalos</span></span>
+<span id="cb46-13"><a href="#cb46-13" aria-hidden="true" tabindex="-1"></a>significance_results_t_temp <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">Intervalo =</span> area_ranges)  </span>
 <span id="cb46-14"><a href="#cb46-14" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb46-15"><a href="#cb46-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Loop por cada região</span></span>
 <span id="cb46-16"><a href="#cb46-16" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (region <span class="cf">in</span> regions) {</span>
@@ -1765,7 +1765,7 @@ Vcells 3437060  26.3    8388608  64.0  5680635  43.4</code></pre>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used  (Mb) gc trigger  (Mb) max used  (Mb)
 Ncells 1884779 100.7    2951642 157.7  2951642 157.7
-Vcells 3437196  26.3    8388608  64.0  5680635  43.4</code></pre>
+Vcells 3436739  26.3    8388608  64.0  5680255  43.4</code></pre>
 </div>
 </div>
 </section>
@@ -1783,7 +1783,7 @@ Vcells 3437196  26.3    8388608  64.0  5680635  43.4</code></pre>
 <span id="cb48-9"><a href="#cb48-9" aria-hidden="true" tabindex="-1"></a>regions <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"CBA"</span>, <span class="st">"EBA"</span>, <span class="st">"SBA"</span>)</span>
 <span id="cb48-10"><a href="#cb48-10" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb48-11"><a href="#cb48-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Criando um DataFrame vazio para armazenar os resultados</span></span>
-<span id="cb48-12"><a href="#cb48-12" aria-hidden="true" tabindex="-1"></a>significance_results_w_temp <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">Intervalo =</span> area_ranges)  <span class="co"># Adiciona a coluna de intervalos</span></span>
+<span id="cb48-12"><a href="#cb48-12" aria-hidden="true" tabindex="-1"></a>significance_results_w_temp <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">Intervalo =</span> area_ranges)  </span>
 <span id="cb48-13"><a href="#cb48-13" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb48-14"><a href="#cb48-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Loop por cada região</span></span>
 <span id="cb48-15"><a href="#cb48-15" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (region <span class="cf">in</span> regions) {</span>
@@ -1834,7 +1834,7 @@ Vcells 3437196  26.3    8388608  64.0  5680635  43.4</code></pre>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used  (Mb) gc trigger  (Mb) max used  (Mb)
 Ncells 1884787 100.7    2951642 157.7  2951642 157.7
-Vcells 3438924  26.3    8388608  64.0  5680635  43.4</code></pre>
+Vcells 3438463  26.3    8388608  64.0  5680255  43.4</code></pre>
 </div>
 </div>
 <section id="plot-com-significance-2" class="level4">
@@ -1931,7 +1931,7 @@ Vcells 3438924  26.3    8388608  64.0  5680635  43.4</code></pre>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used  (Mb) gc trigger  (Mb) max used  (Mb)
 Ncells 1949990 104.2    2951642 157.7  2951642 157.7
-Vcells 3587917  27.4    8388608  64.0  5680635  43.4</code></pre>
+Vcells 3587452  27.4    8388608  64.0  5680255  43.4</code></pre>
 </div>
 </div>
 </section>
@@ -1943,15 +1943,15 @@ Vcells 3587917  27.4    8388608  64.0  5680635  43.4</code></pre>
 <div class="sourceCode cell-code" id="cb53"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Ajuste das margens</span></span>
 <span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>p_ret_prec_w <span class="ot">&lt;-</span> p_ast_prec_w <span class="sc">+</span> </span>
 <span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_discrete</span>(<span class="at">expand =</span> <span class="fu">c</span>(<span class="fl">0.05</span>, <span class="fl">0.05</span>)) <span class="sc">+</span> </span>
-<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.margin =</span> <span class="fu">margin</span>(<span class="at">t =</span> <span class="dv">10</span>, <span class="at">r =</span> <span class="dv">10</span>, <span class="at">b =</span> <span class="dv">5</span>, <span class="at">l =</span> <span class="dv">20</span>))  <span class="co"># Ajuste de margens</span></span>
+<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.margin =</span> <span class="fu">margin</span>(<span class="at">t =</span> <span class="dv">10</span>, <span class="at">r =</span> <span class="dv">10</span>, <span class="at">b =</span> <span class="dv">5</span>, <span class="at">l =</span> <span class="dv">20</span>))  </span>
 <span id="cb53-5"><a href="#cb53-5" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb53-6"><a href="#cb53-6" aria-hidden="true" tabindex="-1"></a>p_ret_evapo_w <span class="ot">&lt;-</span> p_ast_evapo_w <span class="sc">+</span> </span>
 <span id="cb53-7"><a href="#cb53-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_discrete</span>(<span class="at">expand =</span> <span class="fu">c</span>(<span class="fl">0.05</span>, <span class="fl">0.05</span>)) <span class="sc">+</span> </span>
-<span id="cb53-8"><a href="#cb53-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.margin =</span> <span class="fu">margin</span>(<span class="at">t =</span> <span class="dv">5</span>, <span class="at">r =</span> <span class="dv">10</span>, <span class="at">b =</span> <span class="dv">5</span>, <span class="at">l =</span> <span class="dv">20</span>))   <span class="co"># Ajuste de margens</span></span>
+<span id="cb53-8"><a href="#cb53-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.margin =</span> <span class="fu">margin</span>(<span class="at">t =</span> <span class="dv">5</span>, <span class="at">r =</span> <span class="dv">10</span>, <span class="at">b =</span> <span class="dv">5</span>, <span class="at">l =</span> <span class="dv">20</span>))   </span>
 <span id="cb53-9"><a href="#cb53-9" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb53-10"><a href="#cb53-10" aria-hidden="true" tabindex="-1"></a>p_ret_temp_w <span class="ot">&lt;-</span> p_ast_temp_w <span class="sc">+</span> </span>
 <span id="cb53-11"><a href="#cb53-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_discrete</span>(<span class="at">expand =</span> <span class="fu">c</span>(<span class="fl">0.05</span>, <span class="fl">0.05</span>)) <span class="sc">+</span> </span>
-<span id="cb53-12"><a href="#cb53-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.margin =</span> <span class="fu">margin</span>(<span class="at">t =</span> <span class="dv">5</span>, <span class="at">r =</span> <span class="dv">10</span>, <span class="at">b =</span> <span class="dv">10</span>, <span class="at">l =</span> <span class="dv">20</span>))  <span class="co"># Ajuste de margens</span></span>
+<span id="cb53-12"><a href="#cb53-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.margin =</span> <span class="fu">margin</span>(<span class="at">t =</span> <span class="dv">5</span>, <span class="at">r =</span> <span class="dv">10</span>, <span class="at">b =</span> <span class="dv">10</span>, <span class="at">l =</span> <span class="dv">20</span>))  </span>
 <span id="cb53-13"><a href="#cb53-13" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb53-14"><a href="#cb53-14" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb53-15"><a href="#cb53-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Criar painel com espaçamento ajustado</span></span>
@@ -3195,8 +3195,8 @@ Lower triangle: Comparisons (estimate)   earlier vs. later</code></pre>
 <span id="cb91-6"><a href="#cb91-6" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used  (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 4372402 233.6    7437514 397.3  7437514 397.3
-Vcells 8114259  62.0   14786712 112.9 12255593  93.6</code></pre>
+Ncells 4372400 233.6    7437494 397.3  7437494 397.3
+Vcells 8113787  62.0   14786712 112.9 12255593  93.6</code></pre>
 </div>
 </div>
 <section id="todos-os-constraste-entre-frações-de-área" class="level4">
@@ -3337,8 +3337,8 @@ Vcells 8114259  62.0   14786712 112.9 12255593  93.6</code></pre>
 <span id="cb96-6"><a href="#cb96-6" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used  (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 4391412 234.6    7437514 397.3  7437514 397.3
-Vcells 8170906  62.4   14786712 112.9 14786712 112.9</code></pre>
+Ncells 4391410 234.6    7437494 397.3  7437494 397.3
+Vcells 8170434  62.4   14786712 112.9 14786712 112.9</code></pre>
 </div>
 </div>
 </section>
@@ -4825,8 +4825,8 @@ Lower triangle: Comparisons (estimate)   earlier vs. later</code></pre>
 <span id="cb145-6"><a href="#cb145-6" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used  (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 4764940 254.5    7437514 397.3  7437514 397.3
-Vcells 9081597  69.3   17824054 136.0 14786712 112.9</code></pre>
+Ncells 4764938 254.5    7437494 397.3  7437494 397.3
+Vcells 9081125  69.3   17824054 136.0 14786712 112.9</code></pre>
 </div>
 </div>
 <section id="todos-os-constraste-entre-frações-de-área-1" class="level4">
@@ -4965,8 +4965,8 @@ Vcells 9081597  69.3   17824054 136.0 14786712 112.9</code></pre>
 <span id="cb150-6"><a href="#cb150-6" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used  (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 4746531 253.5    7437514 397.3  7437514 397.3
-Vcells 9053017  69.1   17824054 136.0 17824054 136.0</code></pre>
+Ncells 4746529 253.5    7437494 397.3  7437494 397.3
+Vcells 9052545  69.1   17824054 136.0 17823645 136.0</code></pre>
 </div>
 </div>
 </section>
@@ -6460,8 +6460,8 @@ Lower triangle: Comparisons (estimate)   earlier vs. later</code></pre>
 <span id="cb199-6"><a href="#cb199-6" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used  (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 5095497 272.2    7437514 397.3  7437514 397.3
-Vcells 9912773  75.7   17824054 136.0 17824054 136.0</code></pre>
+Ncells 5095487 272.2    7437494 397.3  7437494 397.3
+Vcells 9912301  75.7   17824054 136.0 17823645 136.0</code></pre>
 </div>
 </div>
 <section id="todos-os-constraste-entre-frações-de-área-2" class="level4">
@@ -6600,8 +6600,8 @@ Vcells 9912773  75.7   17824054 136.0 17824054 136.0</code></pre>
 <span id="cb204-6"><a href="#cb204-6" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used  (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 5075665 271.1    7437514 397.3  7437514 397.3
-Vcells 9880754  75.4   17824054 136.0 17824054 136.0</code></pre>
+Ncells 5075655 271.1    7437494 397.3  7437494 397.3
+Vcells 9880282  75.4   17824054 136.0 17823645 136.0</code></pre>
 </div>
 </div>
 </section>
@@ -6754,8 +6754,8 @@ Vcells 9880754  75.4   17824054 136.0 17824054 136.0</code></pre>
 <span id="cb211-3"><a href="#cb211-3" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used  (Mb) gc trigger  (Mb) max used  (Mb)
-Ncells 5134839 274.3    7437514 397.3  7437514 397.3
-Vcells 9966281  76.1   17824054 136.0 17824054 136.0</code></pre>
+Ncells 5134829 274.3    7437494 397.3  7437494 397.3
+Vcells 9965809  76.1   17824054 136.0 17823645 136.0</code></pre>
 </div>
 </div>
 </section>
