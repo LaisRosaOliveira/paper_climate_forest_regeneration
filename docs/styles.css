@@ -1,0 +1,54 @@
+/* Importação das fontes */
+@import url('https://fonts.googleapis.com/css?family=Roboto+Condensed:300');
+@import url('https://fonts.googleapis.com/css?family=Oswald');
+
+/* Barra de navegação */
+.navbar {
+    min-height: 50px;  /* Ajusta a altura da barra */
+    padding: 5px 10px;  /* Ajusta o espaçamento interno */
+    display: flex;  /* Torna a navbar flexível */
+    justify-content: space-between;  /* Distribui os itens com espaço entre eles */
+    align-items: center;  /* Alinha os itens verticalmente ao centro */
+}
+
+/* Alinha os itens à esquerda e move-os para o centro */
+.navbar-nav.left {
+    display: flex;
+    justify-content: center;  /* Centraliza os itens da esquerda */
+    flex-grow: 1;  /* Permite que os itens da esquerda usem todo o espaço disponível */
+}
+
+/* Itens à direita (GitHub, LinkedIn) */
+.navbar-nav.right {
+    display: flex;
+    justify-content: flex-end;  /* Alinha os itens da direita ao fim da barra */
+}
+
+/* Ajuste dos itens de navegação */
+.navbar-nav > li > a {
+    padding-top: 8px;
+    padding-bottom: 8px;
+    font-size: 16px;  /* Ajusta o tamanho dos itens da barra */
+    margin-left: 20px;  /* Espaço entre os itens */
+    padding-left: 10px !important;
+}
+
+/* Ajustes para itens ativos */
+.list-group-item.active {
+    z-index: 2;
+    color: #ffffff;
+    background-color: #3463db;
+    border-color: #3463db;
+}
+
+.page-header {
+    text-align: left;  /* Alinha o texto à esquerda */
+}
+
+h1, h2, h3 {
+    font-family: 'Oswald', sans-serif;
+    padding-bottom: 10px;
+    padding-top: 20px;
+    color: #0c466d;
+    margin-left: 5px;  /* Recuo para os títulos */
+}
