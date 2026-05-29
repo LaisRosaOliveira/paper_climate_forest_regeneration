@@ -51,7 +51,7 @@ loadfonts(device = "pdf")
 
 ```
 
-# Leitura e pré-processamento
+# Reading and Preprocessing
 
 ```{r,eval = FALSE, echo = TRUE}
 
@@ -87,7 +87,7 @@ rm(all_PF_SF)
 
 ```
 
-## Filtragem - Pixels "não-puros"
+## Filtering – "Non-pure" Pixels
 
 ```{r,eval = FALSE, echo = TRUE}
 
@@ -148,7 +148,7 @@ n_obs_sba_d <- all_lulc_50_final %>%
 
 ```
 
-## Plot - Observações
+## Plot - Observations
 
 ```{r,eval = FALSE, echo = TRUE}
 
@@ -215,7 +215,7 @@ gc()
 
 ## PRECIPITATION
 
-### Leitura dos dados
+### Data reading
 
 ```{r,eval = FALSE, echo = TRUE}
 
@@ -239,7 +239,7 @@ gc()
 
 ```
 
-### Agrupamento
+### Grouping
 
 ```{r,eval = FALSE, echo = TRUE}
 
@@ -310,7 +310,7 @@ gc()
 
 ```
 
-### Testes normalidade, homocedasticidade e independência
+### Tests for Normality, Homoscedasticity, and Independence
 
 ```{r}
 
@@ -400,7 +400,7 @@ gc()
 
 ```
 
-### Teste t entre os tipos de cobertura - PF e SF
+### t-test between coverage types – PF and SF
 
 ```{r}
 
@@ -454,7 +454,7 @@ gc()
 
 ```
 
-### Teste Wilcox entre os tipos de cobertura - PF e SF
+### Wilcoxon test between coverage types – PF and SF
 
 ```{r}
 
@@ -510,7 +510,7 @@ gc()
 
 ```
 
-#### Plot com significance
+#### Plot with significance
 
 ```{r}
 
@@ -585,7 +585,7 @@ gc()
 
 ## EVAPOTRANSPIRATION
 
-### Agrupamento
+### Grouping
 
 ```{r,eval = FALSE, echo = TRUE}
 
@@ -660,7 +660,7 @@ gc()
 
 ```
 
-### Testes normalidade, homocedasticidade e independência
+### Tests for Normality, Homoscedasticity, and Independence
 
 ```{r}
 
@@ -750,7 +750,7 @@ gc()
 
 ```
 
-### Teste t entre os tipos de cobertura - PF e SF
+###t-test between coverage types – PF and SF
 
 ```{r}
 
@@ -804,7 +804,7 @@ gc()
 
 ```
 
-### Teste Wilcox entre os tipos de cobertura - PF e SF
+### Wilcoxon test between coverage types – PF and SF
 
 ```{r}
 
@@ -859,7 +859,7 @@ write_xlsx(significance_results_w_evapo, "data_group/significance_results_evapo_
 gc()
 ```
 
-#### Plot com significance
+#### Plot with significance
 
 ```{r}
 
@@ -939,7 +939,7 @@ gc()
 
 ## TEMPERTAURE
 
-### Agrupamento
+### Grouping
 
 ```{r,eval = FALSE, echo = TRUE}
 
@@ -1012,7 +1012,7 @@ rm(all_lulc_50_final)
 gc()
 ```
 
-### Testes normalidade, homocedasticidade e independência
+### Tests for Normality, Homoscedasticity, and Independence
 
 ```{r}
 
@@ -1102,7 +1102,7 @@ gc()
 
 ```
 
-### Teste t entre os tipos de cobertura - PF e SF
+### t-test between coverage types – PF and SF
 
 ```{r}
 
@@ -1156,7 +1156,7 @@ gc()
 
 ```
 
-### Teste Wilcox entre os tipos de cobertura - PF e SF
+### Wilcoxon test between coverage types – PF and SF
 
 ```{r}
 
@@ -1211,7 +1211,7 @@ write_xlsx(significance_results_w_temp, "data_group/significance_results_temp_Wi
 gc()
 ```
 
-#### Plot com significance
+#### Plot with significance
 
 ```{r}
 
@@ -1288,7 +1288,7 @@ gc()
 
 ```
 
-## Painel all variables - observation
+## Panel all variables
 
 ```{r}
 
@@ -1324,11 +1324,9 @@ ggsave("fig/painels/painel_fraction_forest_x_prec.pdf",
 
 # Modeling
 
-## Funções
+## Functions
 
 ```{r}
-
-# Auxiliares
 
 safe_dir_create <- function(path) {
   dir.create(path, showWarnings = FALSE, recursive = TRUE)
@@ -1472,8 +1470,6 @@ make_spatial_component_fast <- function(model,
   spatial_cell
 }
 
-# Principal de cada run
-
 run_one_spamm_loaded <- function(region_name,
                                  run_id,
                                  data_region,
@@ -1577,10 +1573,8 @@ run_one_spamm_loaded <- function(region_name,
     
     beta <- fixef(model)
     
-    # ========================================================
-    # A. Spatially adjusted contrasts
-    # ========================================================
     
+    # Spatially adjusted contrasts
     frac_seq <- seq(0.01, 1.00, length.out = 50)
     
     newdata_adj <- expand.grid(
@@ -1621,10 +1615,8 @@ run_one_spamm_loaded <- function(region_name,
         PF_minus_SF_advanced
       )
     
-    # ========================================================
-    # B. Full prediction, residuals and diagnostics
-    # ========================================================
-    
+
+    # Full prediction, residuals and diagnostics
     fitted_full <- as.numeric(
       predict(model, newdata = dados_sub, type = "response")
     )
@@ -1683,10 +1675,8 @@ run_one_spamm_loaded <- function(region_name,
     
     fwrite(metrics, file_metrics)
     
-    # ========================================================
-    # C. Current landscape contrasts
-    # ========================================================
-    
+
+    # Current landscape contrasts
     dados_pred <- dados_sub %>%
       mutate(
         pred_full = fitted_full,
@@ -1743,10 +1733,8 @@ run_one_spamm_loaded <- function(region_name,
     
     fwrite(contrasts, file_contrasts)
     
-    # ========================================================
-    # D. Year and spatial components
-    # ========================================================
-    
+
+    # Year and spatial components
     year_effects <- extract_year_effects(
       model = model,
       region_name = region_name,
@@ -1815,9 +1803,9 @@ run_one_spamm_loaded <- function(region_name,
 
 ```
 
-## PRECIPITAÇÃO
+## PRECIPITATION
 
-### Parâmetros
+### Parameters
 
 ```{r,eval = FALSE, echo = TRUE}
 
@@ -1826,7 +1814,7 @@ spaMM.options(nb_cores = 1)
 
 set.seed(123)
 
-regions <- c("CBA") #c("EBA") #("CBA", "EBA", "SBA")
+regions <- c("CBA") #("CBA", "EBA", "SBA")
 response_var <- "Prec"
 
 n_runs <- 30 
@@ -1849,7 +1837,7 @@ for (subdir in c(
 
 ```
 
-### Dados
+### Data
 
 ```{r,eval = FALSE, echo = TRUE}
 
@@ -1986,7 +1974,7 @@ invisible(gc())
 
 ```
 
-### Modelo
+### Model
 
 ```{r,eval = FALSE, echo = TRUE}
 
@@ -2081,9 +2069,9 @@ if (n_workers == 1) {
 
 ```
 
-## EVAPOTRANSPIRAÇÃO
+## EVAPOTRANSPIRATION
 
-### Parâmetros
+### Parameters
 
 ```{r,eval = FALSE, echo = TRUE}
 
@@ -2115,7 +2103,7 @@ for (subdir in c(
 
 ```
 
-### Dados
+### Data
 
 ```{r,eval = FALSE, echo = TRUE}
 
@@ -2253,7 +2241,7 @@ invisible(gc())
 
 ```
 
-### Modelo
+### Model
 
 ```{r,eval = FALSE, echo = TRUE}
 
@@ -2348,10 +2336,9 @@ if (n_workers == 1) {
 
 ```
 
+##TEMPERATURE
 
-##TEMPERATURA
-
-### Parâmetros
+### Parameters
 
 ```{r,eval = FALSE, echo = TRUE}
 
@@ -2383,7 +2370,7 @@ for (subdir in c(
 
 ```
 
-### Dados
+### Data
 
 ```{r,eval = FALSE, echo = TRUE}
 
@@ -2520,7 +2507,7 @@ invisible(gc())
 
 ```
 
-### Modelo
+### Model
 
 ```{r,eval = FALSE, echo = TRUE}
 
@@ -2615,13 +2602,13 @@ if (n_workers == 1) {
 
 ```
 
-# Figuras
+# Figures
 
 ## CBA
 
-### Figura Principal
+### Main figure 
 
-#### Funções Base
+#### Base functions
 
 ```{r}
 
@@ -2855,7 +2842,7 @@ load_response_results <- function(response_var, region_name) {
 
 ```
 
-#### Funções Plots
+#### Plots functions
 
 ```{r}
 
@@ -3032,7 +3019,7 @@ make_p_spatial <- function(dat, response_var, first_col = FALSE) {
 
 ```
 
-#### Resultados
+#### Results
 
 ```{r}
 
@@ -3086,9 +3073,32 @@ p_spatial_list <- Map(
   c(TRUE, FALSE, FALSE)
 )
 
+out_fig_dir <- file.path("fig")
+
+p_adj_list
+ggsave(
+  file.path(out_fig_dir, paste0("figure_spat_adj_", region_name, ".png")),
+  p_adj_list, width = 9, height = 5.5, dpi = 600, bg = "white")
+
+p_land_list
+ggsave(
+  file.path(out_fig_dir, paste0("figure_curr_land_", region_name, ".png")),
+  p_land_list, width = 9, height = 5.5, dpi = 600, bg = "white")
+
+p_year_list
+ggsave(
+  file.path(out_fig_dir, paste0("figure_year_effect_", region_name, ".png")),
+  p_year_list, width = 9, height = 5.5, dpi = 600, bg = "white")
+
+p_spatial_list
+ggsave(
+  file.path(out_fig_dir, paste0("figure_spat_effect_", region_name, ".png")),
+  p_spatial_list, width = 9, height = 5.5, dpi = 600, bg = "white")
+
+
 ```
 
-#### Painel
+#### Panel
 
 ```{r}
 
@@ -3143,9 +3153,9 @@ ggsave(file.path(out_fig_dir, paste0("painels/figure_ensemble_", region_name, "_
 
 ```
 
-### Diagnósticos 
+### Diagnostics 
 
-#### Funções
+#### Functions
 
 ```{r}
 
@@ -3418,7 +3428,7 @@ make_p_error <- function(metrics, response_var, first_col = FALSE) {
 
 ```
 
-#### Painel
+#### Panel
 
 ```{r}
 
@@ -3556,9 +3566,9 @@ ggsave(file.path(out_fig_dir, paste0("painels/figure_diagnostics_", region_name,
 
 ## EBA
 
-### Figura Principal
+### Main figure 
 
-#### Funções Base
+#### Base functions
 
 ```{r}
 
@@ -3792,7 +3802,7 @@ load_response_results <- function(response_var, region_name) {
 
 ```
 
-#### Funções Plots
+#### Plots functions
 
 ```{r}
 
@@ -3969,7 +3979,7 @@ make_p_spatial <- function(dat, response_var, first_col = FALSE) {
 
 ```
 
-#### Resultados
+#### Results
 
 ```{r}
 
@@ -4023,9 +4033,31 @@ p_spatial_list <- Map(
   c(TRUE, FALSE, FALSE)
 )
 
+out_fig_dir <- file.path("fig")
+
+p_adj_list
+ggsave(
+  file.path(out_fig_dir, paste0("figure_spat_adj_", region_name, ".png")),
+  p_adj_list, width = 9, height = 5.5, dpi = 600, bg = "white")
+
+p_land_list
+ggsave(
+  file.path(out_fig_dir, paste0("figure_curr_land_", region_name, ".png")),
+  p_land_list, width = 9, height = 5.5, dpi = 600, bg = "white")
+
+p_year_list
+ggsave(
+  file.path(out_fig_dir, paste0("figure_year_effect_", region_name, ".png")),
+  p_year_list, width = 9, height = 5.5, dpi = 600, bg = "white")
+
+p_spatial_list
+ggsave(
+  file.path(out_fig_dir, paste0("figure_spat_effect_", region_name, ".png")),
+  p_spatial_list, width = 9, height = 5.5, dpi = 600, bg = "white")
+
 ```
 
-#### Painel
+#### Panel
 
 ```{r}
 
@@ -4078,9 +4110,9 @@ ggsave(file.path(out_fig_dir, paste0("painels/figure_ensemble_", region_name, "_
 
 ```
 
-### Diagnósticos 
+### Diagnostics 
 
-#### Funções
+#### Functions
 
 ```{r}
 
@@ -4353,7 +4385,7 @@ make_p_error <- function(metrics, response_var, first_col = FALSE) {
 
 ```
 
-#### Painel
+#### Panel
 
 ```{r}
 
@@ -4493,9 +4525,9 @@ ggsave(file.path(out_fig_dir, paste0("painels/figure_diagnostics_", region_name,
 
 ## SBA
 
-### Figura Principal
+### Main figure 
 
-#### Funções Base
+#### Base functions
 
 ```{r}
 
@@ -4730,7 +4762,7 @@ load_response_results <- function(response_var, region_name) {
 
 ```
 
-#### Funções Plots
+#### Plots functions
 
 ```{r}
 
@@ -4909,7 +4941,7 @@ make_p_spatial <- function(dat, response_var, first_col = FALSE) {
 
 ```
 
-#### Resultados
+#### Results
 
 ```{r}
 
@@ -4963,9 +4995,31 @@ p_spatial_list <- Map(
   c(TRUE, FALSE, FALSE)
 )
 
+out_fig_dir <- file.path("fig")
+
+p_adj_list
+ggsave(
+  file.path(out_fig_dir, paste0("figure_spat_adj_", region_name, ".png")),
+  p_adj_list, width = 9, height = 5.5, dpi = 600, bg = "white")
+
+p_land_list
+ggsave(
+  file.path(out_fig_dir, paste0("figure_curr_land_", region_name, ".png")),
+  p_land_list, width = 9, height = 5.5, dpi = 600, bg = "white")
+
+p_year_list
+ggsave(
+  file.path(out_fig_dir, paste0("figure_year_effect_", region_name, ".png")),
+  p_year_list, width = 9, height = 5.5, dpi = 600, bg = "white")
+
+p_spatial_list
+ggsave(
+  file.path(out_fig_dir, paste0("figure_spat_effect_", region_name, ".png")),
+  p_spatial_list, width = 9, height = 5.5, dpi = 600, bg = "white")
+
 ```
 
-#### Painel
+#### Panel
 
 ```{r}
 
@@ -5018,9 +5072,9 @@ ggsave(file.path(out_fig_dir, paste0("painels/figure_ensemble_", region_name, "_
 
 ```
 
-### Diagnósticos 
+### Diagnostics 
 
-#### Funções
+#### Functions
 
 ```{r}
 
@@ -5293,7 +5347,7 @@ make_p_error <- function(metrics, response_var, first_col = FALSE) {
 
 ```
 
-#### Painel
+#### Panel
 
 ```{r}
 
@@ -5429,4 +5483,4 @@ ggsave(file.path(out_fig_dir, paste0("painels/figure_diagnostics_", region_name,
 
 ```
 
-# Fim
+# End
