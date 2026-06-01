@@ -2672,6 +2672,9 @@ rdBu_10 <- c(
   "#D1E5F0", "#92C5DE", "#4393C3", "#2166AC", "#053061"
 )
 
+rdBu_10_temp <- c("#053061", "#2166AC","#4393C3", "#92C5DE", "#D1E5F0",
+                  "#F7F7F7", "#FDDBC7", "#F4A582", "#D6604D", "#B2182B")
+
 bin_levels <- c(
       "0–5", "5–10", "10–15", "15–20", "20–25",
       "25–30", "30–35", "35–40", "40–45", "45–50",
@@ -2858,6 +2861,12 @@ spatial_labels <- list(
   Temp  = c("≤ -1.5", "-1", "-0.5", "0", "0.5", "1", "≥ 1.5")
 )
 
+spatial_cols <- list(
+  Prec  = rdBu_10,
+  Evapo = rdBu_10,
+  Temp  = rdBu_10_temp
+)
+
 make_p_adj <- function(dat, response_var, show_legend = FALSE, first_col = FALSE) {
   
   unit <- response_units[[response_var]]
@@ -2987,7 +2996,7 @@ make_p_spatial <- function(dat, response_var, first_col = FALSE) {
     stat_summary_2d(fun = median, bins = 120) +
     coord_quickmap(expand = TRUE) +
     scale_fill_stepsn(
-      colours = rdBu_10,
+      colours = spatial_cols[[response_var]],
       breaks = spatial_breaks[[response_var]],
       labels = spatial_labels[[response_var]],
       limits = range(spatial_breaks[[response_var]]),
@@ -3149,7 +3158,6 @@ ggsave(
 
 ggsave(file.path(out_fig_dir, paste0("painels/figure_ensemble_", region_name, "_all_variables.pdf")), 
        plot = fig_region, width = 10, height = 12, bg = "white")
-
 
 ```
 
@@ -3632,6 +3640,9 @@ rdBu_10 <- c(
   "#D1E5F0", "#92C5DE", "#4393C3", "#2166AC", "#053061"
 )
 
+rdBu_10_temp <- c("#053061", "#2166AC","#4393C3", "#92C5DE", "#D1E5F0",
+                  "#F7F7F7", "#FDDBC7", "#F4A582", "#D6604D", "#B2182B")
+
 bin_levels <- c(
       "0–5", "5–10", "10–15", "15–20", "20–25",
       "25–30", "30–35", "35–40", "40–45", "45–50",
@@ -3818,6 +3829,12 @@ spatial_labels <- list(
   Temp  = c("≤ -1.5", "-1", "-0.5", "0", "0.5", "1", "≥ 1.5")
 )
 
+spatial_cols <- list(
+  Prec  = rdBu_10,
+  Evapo = rdBu_10,
+  Temp  = rdBu_10_temp
+)
+
 make_p_adj <- function(dat, response_var, show_legend = FALSE, first_col = FALSE) {
   
   unit <- response_units[[response_var]]
@@ -3947,7 +3964,7 @@ make_p_spatial <- function(dat, response_var, first_col = FALSE) {
     stat_summary_2d(fun = median, bins = 120) +
     coord_quickmap(expand = TRUE) +
     scale_fill_stepsn(
-      colours = rdBu_10,
+      colours = spatial_cols[[response_var]],
       breaks = spatial_breaks[[response_var]],
       labels = spatial_labels[[response_var]],
       limits = range(spatial_breaks[[response_var]]),
@@ -4591,6 +4608,8 @@ rdBu_10 <- c(
   "#D1E5F0", "#92C5DE", "#4393C3", "#2166AC", "#053061"
 )
 
+rdBu_10_temp <- c("#053061", "#2166AC","#4393C3", "#92C5DE", "#D1E5F0",
+                  "#F7F7F7", "#FDDBC7", "#F4A582", "#D6604D", "#B2182B")
 
 bin_levels <- c(
       "0–5", "5–10", "10–15", "15–20", "20–25",
@@ -4778,6 +4797,12 @@ spatial_labels <- list(
   Temp  = c("≤ -1.5", "-1", "-0.5", "0", "0.5", "1", "≥ 1.5")
 )
 
+spatial_cols <- list(
+  Prec  = rdBu_10,
+  Evapo = rdBu_10,
+  Temp  = rdBu_10_temp
+)
+
 make_p_adj <- function(dat, response_var, show_legend = FALSE, first_col = FALSE) {
   
   unit <- response_units[[response_var]]
@@ -4907,7 +4932,7 @@ make_p_spatial <- function(dat, response_var, first_col = FALSE) {
     stat_summary_2d(fun = median, bins = 120) +
     coord_quickmap(expand = TRUE) +
     scale_fill_stepsn(
-      colours = rdBu_10,
+      colours = spatial_cols[[response_var]],
       breaks = spatial_breaks[[response_var]],
       labels = spatial_labels[[response_var]],
       limits = range(spatial_breaks[[response_var]]),
