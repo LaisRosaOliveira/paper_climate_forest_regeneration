@@ -2892,7 +2892,7 @@ make_p_adj <- function(dat, response_var, show_legend = FALSE, first_col = FALSE
       x = NULL,
       y = ifelse(
         first_col,
-        paste0("Spatially adjusted\nPF − SF(", unit, ")"),
+        paste0("Comparable landscape\nPF − SF(", unit, ")"),
         paste0("\nPF − SF(", unit, ")")),
       color = NULL,
       fill = NULL
@@ -3860,7 +3860,7 @@ make_p_adj <- function(dat, response_var, show_legend = FALSE, first_col = FALSE
       x = NULL,
       y = ifelse(
         first_col,
-        paste0("Spatially adjusted\nPF − SF(", unit, ")"),
+        paste0("Comparable landscape\nPF − SF(", unit, ")"),
         paste0("\nPF − SF(", unit, ")")),
       color = NULL,
       fill = NULL
@@ -4828,7 +4828,7 @@ make_p_adj <- function(dat, response_var, show_legend = FALSE, first_col = FALSE
       x = NULL,
       y = ifelse(
         first_col,
-        paste0("Spatially adjusted\nPF − SF(", unit, ")"),
+        paste0("Comparable landscape\nPF − SF(", unit, ")"),
         paste0("\nPF − SF(", unit, ")")),
       color = NULL,
       fill = NULL
