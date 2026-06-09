@@ -2069,6 +2069,170 @@ if (n_workers == 1) {
 
 ```
 
+## Coefficients
+
+```{r}
+
+response_var <- "Prec"
+
+regions <- c("CBA", "EBA", "SBA")
+
+base_dirs <- paste0(
+  "spamm_ensemble_",
+  tolower(response_var),
+  "_diagnostics_",
+  regions
+)
+
+names(base_dirs) <- regions
+
+fixed_form <- ~ Tipo * ns(frac_area, df = 3)
+
+frac_seq <- seq(0.01, 1.00, length.out = 200)
+
+all_curves <- list()
+all_coefs <- list()
+
+for (region_name in regions) {
+  
+  out_dir <- base_dirs[[region_name]]
+  
+  message("Processing region: ", region_name)
+  
+  model_files <- list.files(
+    file.path(out_dir, "models"),
+    pattern = "\\.rds$",
+    full.names = TRUE
+  )
+  
+  model_files <- sort(model_files)
+  
+  curves_region <- list()
+  coefs_region <- list()
+  
+  for (f in model_files) {
+    
+    run_id <- as.integer(
+      gsub(".*model_run_([0-9]+)_.*", "\\1", basename(f))
+    )
+    
+    message("  Run ", run_id)
+    
+    model <- readRDS(f)
+    
+    beta <- fixef(model)
+    
+    newdata <- expand.grid(
+      frac_area = frac_seq,
+      Tipo = c(
+        "PF",
+        "SF_early",
+        "SF_intermediate",
+        "SF_advanced"
+      ),
+      KEEP.OUT.ATTRS = FALSE
+    )
+    
+    newdata$Tipo <- factor(
+      newdata$Tipo,
+      levels = c(
+        "PF",
+        "SF_early",
+        "SF_intermediate",
+        "SF_advanced"
+      )
+    )
+    
+    X <- model.matrix(
+      fixed_form,
+      data = newdata
+    )
+    
+    common <- intersect(colnames(X), names(beta))
+    
+    newdata$pred <- as.numeric(
+      X[, common, drop = FALSE] %*% beta[common]
+    )
+    
+    newdata$region <- region_name
+    newdata$response <- response_var
+    newdata$run <- run_id
+    
+    curves_region[[as.character(run_id)]] <- as.data.table(newdata)
+    
+    coefs_region[[as.character(run_id)]] <- data.table(
+      region = region_name,
+      response = response_var,
+      run = run_id,
+      term = names(beta),
+      estimate = as.numeric(beta)
+    )
+  }
+  
+  curves_region <- rbindlist(curves_region)
+  coefs_region <- rbindlist(coefs_region)
+  
+  curves_summary_region <- curves_region[
+    ,
+    .(
+      median = median(pred, na.rm = TRUE),
+      lower = quantile(pred, 0.025, na.rm = TRUE),
+      upper = quantile(pred, 0.975, na.rm = TRUE)
+    ),
+    by = .(region, response, frac_area, Tipo)
+  ]
+  
+  coefs_summary_region <- coefs_region[
+    ,
+    .(
+      median_beta = median(estimate, na.rm = TRUE),
+      lower_beta = quantile(estimate, 0.025, na.rm = TRUE),
+      upper_beta = quantile(estimate, 0.975, na.rm = TRUE),
+      mean_beta = mean(estimate, na.rm = TRUE),
+      sd_beta = sd(estimate, na.rm = TRUE)
+    ),
+    by = .(region, response, term)
+  ]
+  
+  fwrite(
+    curves_region,
+    file.path(out_dir, "tables", paste0("fixed_curves_all_runs_", region_name, ".csv"))
+  )
+  
+  fwrite(
+    curves_summary_region,
+    file.path(out_dir, "tables", paste0("fixed_curves_ensemble_summary_", region_name, ".csv"))
+  )
+  
+  fwrite(
+    coefs_region,
+    file.path(out_dir, "tables", paste0("fixed_coefficients_all_runs_", region_name, ".csv"))
+  )
+  
+  fwrite(
+    coefs_summary_region,
+    file.path(out_dir, "tables", paste0("fixed_coefficients_ensemble_summary_", region_name, ".csv"))
+  )
+  
+  all_curves[[region_name]] <- curves_summary_region
+  all_coefs[[region_name]] <- coefs_summary_region
+}
+
+curves_summary_all <- rbindlist(all_curves)
+coefs_summary_all <- rbindlist(all_coefs)
+
+fwrite(
+  curves_summary_all,
+  paste0("fixed_curves_ensemble_summary_all_regions_", response_var, ".csv")
+)
+
+fwrite(
+  coefs_summary_all,
+  paste0("fixed_coefficients_ensemble_summary_all_regions_", response_var, ".csv")
+)
+
+```
+
 ## EVAPOTRANSPIRATION
 
 ### Parameters
@@ -2333,6 +2497,170 @@ if (n_workers == 1) {
   
   plan(sequential)
 }
+
+```
+
+## Coefficients
+
+```{r}
+
+response_var <- "Evapo"
+
+regions <- c("CBA", "EBA", "SBA")
+
+base_dirs <- paste0(
+  "spamm_ensemble_",
+  tolower(response_var),
+  "_diagnostics_",
+  regions
+)
+
+names(base_dirs) <- regions
+
+fixed_form <- ~ Tipo * ns(frac_area, df = 3)
+
+frac_seq <- seq(0.01, 1.00, length.out = 200)
+
+all_curves <- list()
+all_coefs <- list()
+
+for (region_name in regions) {
+  
+  out_dir <- base_dirs[[region_name]]
+  
+  message("Processing region: ", region_name)
+  
+  model_files <- list.files(
+    file.path(out_dir, "models"),
+    pattern = "\\.rds$",
+    full.names = TRUE
+  )
+  
+  model_files <- sort(model_files)
+  
+  curves_region <- list()
+  coefs_region <- list()
+  
+  for (f in model_files) {
+    
+    run_id <- as.integer(
+      gsub(".*model_run_([0-9]+)_.*", "\\1", basename(f))
+    )
+    
+    message("  Run ", run_id)
+    
+    model <- readRDS(f)
+    
+    beta <- fixef(model)
+    
+    newdata <- expand.grid(
+      frac_area = frac_seq,
+      Tipo = c(
+        "PF",
+        "SF_early",
+        "SF_intermediate",
+        "SF_advanced"
+      ),
+      KEEP.OUT.ATTRS = FALSE
+    )
+    
+    newdata$Tipo <- factor(
+      newdata$Tipo,
+      levels = c(
+        "PF",
+        "SF_early",
+        "SF_intermediate",
+        "SF_advanced"
+      )
+    )
+    
+    X <- model.matrix(
+      fixed_form,
+      data = newdata
+    )
+    
+    common <- intersect(colnames(X), names(beta))
+    
+    newdata$pred <- as.numeric(
+      X[, common, drop = FALSE] %*% beta[common]
+    )
+    
+    newdata$region <- region_name
+    newdata$response <- response_var
+    newdata$run <- run_id
+    
+    curves_region[[as.character(run_id)]] <- as.data.table(newdata)
+    
+    coefs_region[[as.character(run_id)]] <- data.table(
+      region = region_name,
+      response = response_var,
+      run = run_id,
+      term = names(beta),
+      estimate = as.numeric(beta)
+    )
+  }
+  
+  curves_region <- rbindlist(curves_region)
+  coefs_region <- rbindlist(coefs_region)
+  
+  curves_summary_region <- curves_region[
+    ,
+    .(
+      median = median(pred, na.rm = TRUE),
+      lower = quantile(pred, 0.025, na.rm = TRUE),
+      upper = quantile(pred, 0.975, na.rm = TRUE)
+    ),
+    by = .(region, response, frac_area, Tipo)
+  ]
+  
+  coefs_summary_region <- coefs_region[
+    ,
+    .(
+      median_beta = median(estimate, na.rm = TRUE),
+      lower_beta = quantile(estimate, 0.025, na.rm = TRUE),
+      upper_beta = quantile(estimate, 0.975, na.rm = TRUE),
+      mean_beta = mean(estimate, na.rm = TRUE),
+      sd_beta = sd(estimate, na.rm = TRUE)
+    ),
+    by = .(region, response, term)
+  ]
+  
+  fwrite(
+    curves_region,
+    file.path(out_dir, "tables", paste0("fixed_curves_all_runs_", region_name, ".csv"))
+  )
+  
+  fwrite(
+    curves_summary_region,
+    file.path(out_dir, "tables", paste0("fixed_curves_ensemble_summary_", region_name, ".csv"))
+  )
+  
+  fwrite(
+    coefs_region,
+    file.path(out_dir, "tables", paste0("fixed_coefficients_all_runs_", region_name, ".csv"))
+  )
+  
+  fwrite(
+    coefs_summary_region,
+    file.path(out_dir, "tables", paste0("fixed_coefficients_ensemble_summary_", region_name, ".csv"))
+  )
+  
+  all_curves[[region_name]] <- curves_summary_region
+  all_coefs[[region_name]] <- coefs_summary_region
+}
+
+curves_summary_all <- rbindlist(all_curves)
+coefs_summary_all <- rbindlist(all_coefs)
+
+fwrite(
+  curves_summary_all,
+  paste0("fixed_curves_ensemble_summary_all_regions_", response_var, ".csv")
+)
+
+fwrite(
+  coefs_summary_all,
+  paste0("fixed_coefficients_ensemble_summary_all_regions_", response_var, ".csv")
+)
 
 ```
 
@@ -2602,6 +2930,170 @@ if (n_workers == 1) {
 
 ```
 
+## Coefficients
+
+```{r}
+
+response_var <- "Temp"
+
+regions <- c("CBA", "EBA", "SBA")
+
+base_dirs <- paste0(
+  "spamm_ensemble_",
+  tolower(response_var),
+  "_diagnostics_",
+  regions
+)
+
+names(base_dirs) <- regions
+
+fixed_form <- ~ Tipo * ns(frac_area, df = 3)
+
+frac_seq <- seq(0.01, 1.00, length.out = 200)
+
+all_curves <- list()
+all_coefs <- list()
+
+for (region_name in regions) {
+  
+  out_dir <- base_dirs[[region_name]]
+  
+  message("Processing region: ", region_name)
+  
+  model_files <- list.files(
+    file.path(out_dir, "models"),
+    pattern = "\\.rds$",
+    full.names = TRUE
+  )
+  
+  model_files <- sort(model_files)
+  
+  curves_region <- list()
+  coefs_region <- list()
+  
+  for (f in model_files) {
+    
+    run_id <- as.integer(
+      gsub(".*model_run_([0-9]+)_.*", "\\1", basename(f))
+    )
+    
+    message("  Run ", run_id)
+    
+    model <- readRDS(f)
+    
+    beta <- fixef(model)
+    
+    newdata <- expand.grid(
+      frac_area = frac_seq,
+      Tipo = c(
+        "PF",
+        "SF_early",
+        "SF_intermediate",
+        "SF_advanced"
+      ),
+      KEEP.OUT.ATTRS = FALSE
+    )
+    
+    newdata$Tipo <- factor(
+      newdata$Tipo,
+      levels = c(
+        "PF",
+        "SF_early",
+        "SF_intermediate",
+        "SF_advanced"
+      )
+    )
+    
+    X <- model.matrix(
+      fixed_form,
+      data = newdata
+    )
+    
+    common <- intersect(colnames(X), names(beta))
+    
+    newdata$pred <- as.numeric(
+      X[, common, drop = FALSE] %*% beta[common]
+    )
+    
+    newdata$region <- region_name
+    newdata$response <- response_var
+    newdata$run <- run_id
+    
+    curves_region[[as.character(run_id)]] <- as.data.table(newdata)
+    
+    coefs_region[[as.character(run_id)]] <- data.table(
+      region = region_name,
+      response = response_var,
+      run = run_id,
+      term = names(beta),
+      estimate = as.numeric(beta)
+    )
+  }
+  
+  curves_region <- rbindlist(curves_region)
+  coefs_region <- rbindlist(coefs_region)
+  
+  curves_summary_region <- curves_region[
+    ,
+    .(
+      median = median(pred, na.rm = TRUE),
+      lower = quantile(pred, 0.025, na.rm = TRUE),
+      upper = quantile(pred, 0.975, na.rm = TRUE)
+    ),
+    by = .(region, response, frac_area, Tipo)
+  ]
+  
+  coefs_summary_region <- coefs_region[
+    ,
+    .(
+      median_beta = median(estimate, na.rm = TRUE),
+      lower_beta = quantile(estimate, 0.025, na.rm = TRUE),
+      upper_beta = quantile(estimate, 0.975, na.rm = TRUE),
+      mean_beta = mean(estimate, na.rm = TRUE),
+      sd_beta = sd(estimate, na.rm = TRUE)
+    ),
+    by = .(region, response, term)
+  ]
+  
+  fwrite(
+    curves_region,
+    file.path(out_dir, "tables", paste0("fixed_curves_all_runs_", region_name, ".csv"))
+  )
+  
+  fwrite(
+    curves_summary_region,
+    file.path(out_dir, "tables", paste0("fixed_curves_ensemble_summary_", region_name, ".csv"))
+  )
+  
+  fwrite(
+    coefs_region,
+    file.path(out_dir, "tables", paste0("fixed_coefficients_all_runs_", region_name, ".csv"))
+  )
+  
+  fwrite(
+    coefs_summary_region,
+    file.path(out_dir, "tables", paste0("fixed_coefficients_ensemble_summary_", region_name, ".csv"))
+  )
+  
+  all_curves[[region_name]] <- curves_summary_region
+  all_coefs[[region_name]] <- coefs_summary_region
+}
+
+curves_summary_all <- rbindlist(all_curves)
+coefs_summary_all <- rbindlist(all_coefs)
+
+fwrite(
+  curves_summary_all,
+  paste0("fixed_curves_ensemble_summary_all_regions_", response_var, ".csv")
+)
+
+fwrite(
+  coefs_summary_all,
+  paste0("fixed_coefficients_ensemble_summary_all_regions_", response_var, ".csv")
+)
+
+```
+
 # Figures
 
 ## CBA
@@ -2661,10 +3153,10 @@ color_year <- c(
   Temp  = "#7F3B08")
 
 x_forest_scale <- scale_x_continuous(
-  limits = c(0, 1),
+  limits = c(0, 1.01),
   breaks = seq(0, 1, by = 0.25),
   labels = scales::percent_format(accuracy = 1),
-  expand = expansion(mult = c(0.01, 0.01))
+  expand = expansion(mult = c(0, 0))
 )
 
 rdBu_10 <- c(
@@ -2767,6 +3259,9 @@ load_response_results <- function(response_var, region_name) {
       upper = safe_quantile(difference, 0.975),
       n_runs = n_distinct(run),
       .groups = "drop"
+    ) %>%
+    mutate(
+      significant = lower > 0 | upper < 0
     )
   
   fwrite(
@@ -2872,31 +3367,80 @@ make_p_adj <- function(dat, response_var, show_legend = FALSE, first_col = FALSE
   unit <- response_units[[response_var]]
   label <- response_labels[[response_var]]
   
+  dat_adj <- dat %>% 
+    filter(contrast_type == "Spatially adjusted")
+  
+  yrng <- range(c(dat_adj$lower, dat_adj$upper, dat_adj$median), na.rm = TRUE)
+  dy <- diff(yrng)
+  
+  tick_top <- yrng[2] + 0.095 * dy
+  tick_half <- 0.004
+  
+  dat_sig <- dat_adj %>%
+    mutate(
+      sig_col = ifelse(significant, as.character(stage), "Not significant"),
+      y_tick = case_when(
+        stage == "SF[e]" ~ tick_top,
+        stage == "SF[i]" ~ tick_top + 0.035 * dy,
+        stage == "SF[a]" ~ tick_top + 0.070 * dy
+      ),
+      tick_half <- 0.004,
+      x_center = pmin(pmax(frac_plot, tick_half), 1 - tick_half),
+      x_start  = x_center - tick_half,
+      x_end    = x_center + tick_half
+    )
+  
   ggplot(
-    dat %>% filter(contrast_type == "Spatially adjusted"),
+    dat_adj,
     aes(x = frac_plot, y = median, color = stage, fill = stage)
   ) +
     geom_hline(yintercept = 0, linetype = "dashed", linewidth = 0.35) +
     geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.18, color = NA) +
     geom_line(linewidth = 0.8) +
+    
+    geom_segment(
+      data = dat_sig,
+      aes(
+        x = x_start,
+        xend = x_end,
+        y = y_tick,
+        yend = y_tick,
+        color = sig_col
+      ),
+      linewidth = 1.0,
+      inherit.aes = FALSE,
+      show.legend = FALSE
+    ) +
+    
     x_forest_scale +
+    
+    coord_cartesian(ylim = yrng, clip = "off") +
+    
     scale_color_manual(
-      values = cols_by_response[[response_var]],
-      labels = parse(text = c("bold(SF[e])", "bold(SF[i])", "bold(SF[a])"))) +
+      values = c(
+        cols_by_response[[response_var]],
+        "Not significant" = "grey75"
+      ),
+      breaks = c("SF[e]", "SF[i]", "SF[a]"),
+      labels = parse(text = c("bold(SF[e])", "bold(SF[i])", "bold(SF[a])"))
+    ) +
     scale_fill_manual(
       values = cols_by_response[[response_var]],
       labels = parse(text = c("bold(SF[e])", "bold(SF[i])", "bold(SF[a])")),
-      guide = "none") +
+      guide = "none"
+    ) +
     labs(
       title = label,
       x = NULL,
       y = ifelse(
         first_col,
-        paste0("Comparable landscape\nPF − SF(", unit, ")"),
-        paste0("\nPF − SF(", unit, ")")),
+        paste0("Standardized\nPF − SF(", unit, ")"),
+        paste0("\nPF − SF(", unit, ")")
+      ),
       color = NULL,
       fill = NULL
     ) +
+    
     theme_bw(base_size = 10) +
     theme(
       text = element_text(face = "bold", family = "serif"),
@@ -2906,9 +3450,9 @@ make_p_adj <- function(dat, response_var, show_legend = FALSE, first_col = FALSE
       legend.text = element_text(size = 9, face = "bold"),
       legend.key.width = unit(0.45, "cm"),
       legend.key.height = unit(0.25, "cm"),
-      legend.margin = margin(t = -3, r = 0, b = -6, l = 0),
-      legend.box.margin = margin(t = -6, r = 0, b = -8, l = 0),
-      plot.margin = margin(t = 2, r = 6, b = 10, l = 4),
+      legend.margin = margin(t = 2, r = 0, b = 6, l = 0),
+      legend.box.margin = margin(t = 2, r = 0, b = 8, l = 0),
+      plot.margin = margin(t = 8, r = 6, b = 10, l = 4),
       legend.position = ifelse(show_legend, "top", "none"),
       legend.direction = "horizontal",
       panel.grid.minor = element_blank()
@@ -2919,17 +3463,56 @@ make_p_land <- function(dat, response_var, show_legend = FALSE, first_col = FALS
   
   unit <- response_units[[response_var]]
   
+  dat_land <- dat %>% 
+    filter(contrast_type == "Current landscape")
+  
+  yrng <- range(c(dat_land$median), na.rm = TRUE)
+  dy <- diff(yrng)
+  
+  tick_top <- yrng[2] + 0.095 * dy
+  
+  dat_sig <- dat_land %>%
+    mutate(
+      sig_col = ifelse(significant, as.character(stage), "Not significant"),
+      y_tick = case_when(
+        stage == "SF[e]" ~ tick_top,
+        stage == "SF[i]" ~ tick_top + 0.035 * dy,
+        stage == "SF[a]" ~ tick_top + 0.070 * dy
+      )
+    )
+  
   ggplot(
-    dat %>% filter(contrast_type == "Current landscape"),
+    dat_land,
     aes(x = frac_bin, y = median, color = stage, group = stage)
   ) +
     geom_hline(yintercept = 0, linetype = "dashed", linewidth = 0.35) +
     geom_line(linewidth = 0.8, linetype = "22") +
+    
+    geom_linerange(
+      data = dat_sig,
+      aes(
+        x = frac_bin,
+        ymin = y_tick - 0.008 * dy,
+        ymax = y_tick + 0.008 * dy,
+        color = sig_col
+      ),
+      linewidth = 1.15,
+      inherit.aes = FALSE,
+      show.legend = FALSE
+    ) +
+    
     scale_x_discrete(
       drop = FALSE,
-      breaks = bin_levels[c(FALSE, TRUE)]) +
+      breaks = bin_levels[c(FALSE, TRUE)]
+    ) +
+    coord_cartesian(ylim = yrng, clip = "off") +
+    
     scale_color_manual(
-      values = cols_by_response[[response_var]],
+      values = c(
+        cols_by_response[[response_var]],
+        "Not significant" = "grey75"
+      ),
+      breaks = c("SF[e]", "SF[i]", "SF[a]"),
       labels = parse(text = c("bold(SF[e])", "bold(SF[i])", "bold(SF[a])"))
     ) +
     labs(
@@ -2941,6 +3524,7 @@ make_p_land <- function(dat, response_var, show_legend = FALSE, first_col = FALS
       ),
       color = NULL
     ) +
+   
     theme_bw(base_size = 10) +
     theme(
       text = element_text(face = "bold", family = "serif"),
@@ -2950,9 +3534,9 @@ make_p_land <- function(dat, response_var, show_legend = FALSE, first_col = FALS
       legend.text = element_text(size = 9, face = "bold"),
       legend.key.width = unit(0.45, "cm"),
       legend.key.height = unit(0.25, "cm"),
-      legend.margin = margin(t = -3, r = 0, b = -6, l = 0),
-      legend.box.margin = margin(t = -6, r = 0, b = -8, l = 0),
-      plot.margin = margin(t = 2, r = 6, b = 10, l = 4),
+      legend.margin = margin(t = 2, r = 0, b = 6, l = 0),
+      legend.box.margin = margin(t = 2, r = 0, b = 8, l = 0),
+      plot.margin = margin(t = 8, r = 6, b = 10, l = 4),
       legend.position = ifelse(show_legend, "top", "none"),
       legend.direction = "horizontal",
       panel.grid.minor = element_blank()
@@ -2965,13 +3549,25 @@ make_p_year <- function(dat, response_var, first_col = FALSE) {
   
   ggplot(dat, aes(x = Ano, y = median)) +
     geom_hline(yintercept = 0, linetype = "dashed", linewidth = 0.35) +
-    geom_ribbon(aes(ymin = lower, ymax = upper), fill = color_year[[response_var]], alpha = 0.18) +
-    geom_line(linewidth = 0.85, color = color_year[[response_var]]) +
-    geom_point(size = 1.5, color = color_year[[response_var]]) +
-    scale_x_continuous(
-      breaks = seq(2001, 2021, by = 5),
-      limits = c(2001, 2021)
+    geom_ribbon(
+      aes(ymin = lower, ymax = upper),
+      fill = color_year[[response_var]],
+      alpha = 0.25
     ) +
+    
+    geom_line(
+      linewidth = 0.95,
+      color = color_year[[response_var]]
+    ) +
+    
+    geom_point(
+      size = 2.0,
+      color = color_year[[response_var]]
+    ) +
+        scale_x_continuous(
+          breaks = seq(2001, 2021, by = 5),
+          limits = c(2001, 2021)
+        ) +
     labs(
       x = NULL,
       y = ifelse(
@@ -3015,7 +3611,7 @@ make_p_spatial <- function(dat, response_var, first_col = FALSE) {
       text = element_text(face = "bold", family = "serif"),
       axis.title = element_text(size = 10),
       axis.text = element_text(size = 9, color = "black"),
-      legend.position = "top",
+      legend.position = "bottom",
       legend.direction = "horizontal",
       legend.title = element_text(size = 9, face = "bold"),
       legend.text = element_text(size = 8.5),
@@ -3161,7 +3757,290 @@ ggsave(file.path(out_fig_dir, paste0("painels/figure_ensemble_", region_name, "_
 
 ```
 
+
 ### Diagnostics 
+
+#### Stabilization
+
+```{r}
+
+region_name <- "CBA"
+
+response_vars <- c("Prec", "Evapo", "Temp")
+
+response_labels <- c(
+  Prec  = "Precipitation",
+  Evapo = "ET",
+  Temp  = "LST"
+)
+
+response_units <- c(
+  Prec  = "mm",
+  Evapo = "mm",
+  Temp  = "°C"
+)
+
+color_year <- c(
+  Prec  = "midnightblue",
+  Evapo = "#02401B",
+  Temp  = "#7F3B08"
+)
+
+contrast_type_select <- "Spatially adjusted"
+
+cover_values <- c(0.25, 0.50, 0.75)
+
+contrast_cols <- c(
+  "PF_minus_SF_early",
+  "PF_minus_SF_intermediate",
+  "PF_minus_SF_advanced"
+)
+
+contrast_labels <- c(
+  PF_minus_SF_early = "PF - SF[e]",
+  PF_minus_SF_intermediate = "PF - SF[i]",
+  PF_minus_SF_advanced = "PF - SF[a]"
+)
+
+n_perm <- 200
+
+set.seed(123)
+
+
+calc_stability_one <- function(region_name,
+                               response_var,
+                               contrast_col,
+                               cover_value,
+                               n_perm = 200) {
+  
+  out_dir <- paste0(
+    "spamm_ensemble_",
+    tolower(response_var),
+    "_diagnostics_",
+    region_name
+  )
+  
+  file_contrasts <- file.path(
+    out_dir,
+    "tables",
+    "contrasts_ensemble_all_runs.csv"
+  )
+  
+  if (!file.exists(file_contrasts)) {
+    stop("File not found: ", file_contrasts)
+  }
+  
+  contr <- fread(file_contrasts)
+  
+  tmp0 <- contr %>%
+    filter(contrast_type == contrast_type_select)
+  
+  tmp <- tmp0 %>%
+  mutate(
+    cover_diff = abs(frac_area - cover_value)
+  ) %>%
+  group_by(run) %>%
+  slice_min(
+    order_by = cover_diff,
+    n = 1,
+    with_ties = FALSE
+  ) %>%
+  ungroup() %>%
+  select(run, value = all_of(contrast_col)) %>%
+  filter(!is.na(value))
+  
+  runs_available <- sort(unique(tmp$run))
+  
+  if (length(runs_available) < 3) {
+    stop(
+      "Too few runs available for ",
+      response_var, " | ",
+      contrast_col, " | cover ",
+      cover_value
+    )
+  }
+  
+  stab_list <- list()
+  
+  for (p in seq_len(n_perm)) {
+    
+    run_order <- sample(runs_available)
+    
+    for (n in 2:length(run_order)) {
+      
+      sel_runs <- run_order[1:n]
+      
+      est <- tmp %>%
+        filter(run %in% sel_runs) %>%
+        summarise(
+          median_est = median(value, na.rm = TRUE)
+        ) %>%
+        pull(median_est)
+      
+      stab_list[[length(stab_list) + 1]] <- data.frame(
+        response = response_var,
+        response_label = response_labels[[response_var]],
+        unit = response_units[[response_var]],
+        permutation = p,
+        n_runs = n,
+        estimate = est,
+        contrast = contrast_labels[[contrast_col]],
+        cover_value = cover_value,
+        cover_label = paste0(round(cover_value * 100), "% cover")
+      )
+    }
+  }
+  
+  bind_rows(stab_list)
+}
+
+
+stab_all <- list()
+
+for (rv in response_vars) {
+  for (cc in contrast_cols) {
+    for (cv in cover_values) {
+      
+      message(
+        "Processing: ",
+        region_name, " | ",
+        rv, " | ",
+        cc, " | cover = ",
+        cv
+      )
+      
+      stab_all[[paste(rv, cc, cv, sep = "_")]] <-
+        calc_stability_one(
+          region_name = region_name,
+          response_var = rv,
+          contrast_col = cc,
+          cover_value = cv,
+          n_perm = n_perm
+        )
+    }
+  }
+}
+
+stab_df <- bind_rows(stab_all)
+
+stab_df <- stab_df %>%
+  group_by(
+    response,
+    contrast,
+    cover_value
+  ) %>%
+  mutate(
+    final_estimate = median(
+      estimate[n_runs == max(n_runs)],
+      na.rm = TRUE
+    ),
+    estimate_centered =
+      estimate - final_estimate
+  ) %>%
+  ungroup()
+
+stab_summary <- stab_df %>%
+  group_by(
+    response,
+    response_label,
+    unit,
+    contrast,
+    cover_value,
+    cover_label,
+    n_runs
+  ) %>%
+  summarise(
+    median = median(estimate_centered, na.rm = TRUE),
+    lower = quantile(estimate_centered, 0.025, na.rm = TRUE),
+    upper = quantile(estimate_centered, 0.975, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    response_label = factor(
+      response_label,
+      levels = response_labels[response_vars]
+    ),
+    contrast = factor(
+      contrast,
+      levels = contrast_labels[contrast_cols]
+    ),
+    cover_label = factor(
+      cover_label,
+      levels = paste0(round(cover_values * 100), "% cover")
+    )
+  )
+
+
+out_table_dir <- file.path("fig",  "stability",  "tables")
+
+dir.create(out_table_dir, recursive = TRUE, showWarnings = FALSE)
+
+fwrite(stab_df,
+  file.path(out_table_dir,
+    paste0("ensemble_stability_all_permutations_all_variables_", region_name, ".csv")))
+
+fwrite( stab_summary,
+  file.path(out_table_dir,
+    paste0("ensemble_stability_summary_all_variables_", region_name, ".csv")))
+
+format_y_stability <- function(x) {
+  ifelse(abs(x) < 0.1, sprintf("%.2f", x), as.character(x))
+}
+
+p_stability_all <- ggplot(
+  stab_summary,
+  aes(x = n_runs, y = median, color = response, fill = response)
+) +
+  geom_ribbon(
+    aes(ymin = lower, ymax = upper),
+    alpha = 0.16,
+    color = NA) +
+  geom_hline(yintercept = 0, linetype = "dashed",
+             linewidth = 0.35, color = "grey35") +
+  geom_line(linewidth = 0.75) +
+  geom_point(size = 1.1) +
+  facet_grid(
+    response_label + contrast ~ cover_label,
+    scales = "free_y",
+    labeller = labeller(
+      contrast = label_parsed)) +
+  scale_y_continuous(
+  labels = format_y_stability) +
+  scale_color_manual(values = color_year, guide = "none") +
+  scale_fill_manual(values = color_year, guide = "none") +
+  labs(
+    x = "Number of ensemble repetitions",
+    y = "Deviation from the final ensemble estimate (30 runs)",
+    title = paste0("Stability of ensemble estimates - ", region_name)
+  ) +
+  theme_bw(base_size = 12) +
+  theme(
+    text = element_text(face = "bold", family = "serif"),
+    plot.title = element_text(hjust = 0.5, size = 13),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 11, color = "black"),
+    strip.text = element_text(size = 11, face = "bold"),
+    strip.background = element_rect(fill = "transparent", color = "transparent"),
+    panel.grid.minor = element_blank()
+  )
+
+p_stability_all
+
+
+out_fig_dir <- file.path("fig", "stability")
+dir.create(out_fig_dir, recursive = TRUE, showWarnings = FALSE)
+
+ggsave(
+  file.path(out_fig_dir,
+    paste0("ensemble_stability_all_variables_", region_name, ".png")  ),
+  p_stability_all,  width = 10,  height = 13,  dpi = 600,  bg = "white")
+
+ggsave(
+  file.path(out_fig_dir,
+    paste0("ensemble_stability_all_variables_", region_name, ".pdf")),
+  p_stability_all,  width = 10,  height = 13,  bg = "white")
+
+```
 
 #### Functions
 
@@ -3629,10 +4508,10 @@ color_year <- c(
   Temp  = "#7F3B08")
 
 x_forest_scale <- scale_x_continuous(
-  limits = c(0, 1),
+  limits = c(0, 1.01),
   breaks = seq(0, 1, by = 0.25),
   labels = scales::percent_format(accuracy = 1),
-  expand = expansion(mult = c(0.01, 0.01))
+  expand = expansion(mult = c(0, 0))
 )
 
 rdBu_10 <- c(
@@ -3735,6 +4614,9 @@ load_response_results <- function(response_var, region_name) {
       upper = safe_quantile(difference, 0.975),
       n_runs = n_distinct(run),
       .groups = "drop"
+    ) %>%
+    mutate(
+      significant = lower > 0 | upper < 0
     )
   
   fwrite(
@@ -3840,31 +4722,80 @@ make_p_adj <- function(dat, response_var, show_legend = FALSE, first_col = FALSE
   unit <- response_units[[response_var]]
   label <- response_labels[[response_var]]
   
+  dat_adj <- dat %>% 
+    filter(contrast_type == "Spatially adjusted")
+  
+  yrng <- range(c(dat_adj$lower, dat_adj$upper, dat_adj$median), na.rm = TRUE)
+  dy <- diff(yrng)
+  
+  tick_top <- yrng[2] + 0.095 * dy
+  tick_half <- 0.004
+  
+  dat_sig <- dat_adj %>%
+    mutate(
+      sig_col = ifelse(significant, as.character(stage), "Not significant"),
+      y_tick = case_when(
+        stage == "SF[e]" ~ tick_top,
+        stage == "SF[i]" ~ tick_top + 0.035 * dy,
+        stage == "SF[a]" ~ tick_top + 0.070 * dy
+      ),
+      tick_half <- 0.004,
+      x_center = pmin(pmax(frac_plot, tick_half), 1 - tick_half),
+      x_start  = x_center - tick_half,
+      x_end    = x_center + tick_half
+    )
+  
   ggplot(
-    dat %>% filter(contrast_type == "Spatially adjusted"),
+    dat_adj,
     aes(x = frac_plot, y = median, color = stage, fill = stage)
   ) +
     geom_hline(yintercept = 0, linetype = "dashed", linewidth = 0.35) +
     geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.18, color = NA) +
     geom_line(linewidth = 0.8) +
+    
+    geom_segment(
+      data = dat_sig,
+      aes(
+        x = x_start,
+        xend = x_end,
+        y = y_tick,
+        yend = y_tick,
+        color = sig_col
+      ),
+      linewidth = 1.0,
+      inherit.aes = FALSE,
+      show.legend = FALSE
+    ) +
+    
     x_forest_scale +
+    
+    coord_cartesian(ylim = yrng, clip = "off") +
+    
     scale_color_manual(
-      values = cols_by_response[[response_var]],
-      labels = parse(text = c("bold(SF[e])", "bold(SF[i])", "bold(SF[a])"))) +
+      values = c(
+        cols_by_response[[response_var]],
+        "Not significant" = "grey75"
+      ),
+      breaks = c("SF[e]", "SF[i]", "SF[a]"),
+      labels = parse(text = c("bold(SF[e])", "bold(SF[i])", "bold(SF[a])"))
+    ) +
     scale_fill_manual(
       values = cols_by_response[[response_var]],
       labels = parse(text = c("bold(SF[e])", "bold(SF[i])", "bold(SF[a])")),
-      guide = "none") +
+      guide = "none"
+    ) +
     labs(
       title = label,
       x = NULL,
       y = ifelse(
         first_col,
-        paste0("Comparable landscape\nPF − SF(", unit, ")"),
-        paste0("\nPF − SF(", unit, ")")),
+        paste0("Standardized\nPF − SF(", unit, ")"),
+        paste0("\nPF − SF(", unit, ")")
+      ),
       color = NULL,
       fill = NULL
     ) +
+    
     theme_bw(base_size = 10) +
     theme(
       text = element_text(face = "bold", family = "serif"),
@@ -3874,9 +4805,9 @@ make_p_adj <- function(dat, response_var, show_legend = FALSE, first_col = FALSE
       legend.text = element_text(size = 9, face = "bold"),
       legend.key.width = unit(0.45, "cm"),
       legend.key.height = unit(0.25, "cm"),
-      legend.margin = margin(t = -3, r = 0, b = -6, l = 0),
-      legend.box.margin = margin(t = -6, r = 0, b = -8, l = 0),
-      plot.margin = margin(t = 2, r = 6, b = 10, l = 4),
+      legend.margin = margin(t = 2, r = 0, b = 6, l = 0),
+      legend.box.margin = margin(t = 2, r = 0, b = 8, l = 0),
+      plot.margin = margin(t = 8, r = 6, b = 10, l = 4),
       legend.position = ifelse(show_legend, "top", "none"),
       legend.direction = "horizontal",
       panel.grid.minor = element_blank()
@@ -3887,17 +4818,56 @@ make_p_land <- function(dat, response_var, show_legend = FALSE, first_col = FALS
   
   unit <- response_units[[response_var]]
   
+  dat_land <- dat %>% 
+    filter(contrast_type == "Current landscape")
+  
+  yrng <- range(c(dat_land$lower, dat_land$upper, dat_land$median, 0), na.rm = TRUE)
+  dy <- diff(yrng)
+  
+  tick_top <- yrng[2] + 0.095 * dy
+  
+  dat_sig <- dat_land %>%
+    mutate(
+      sig_col = ifelse(significant, as.character(stage), "Not significant"),
+      y_tick = case_when(
+        stage == "SF[e]" ~ tick_top,
+        stage == "SF[i]" ~ tick_top + 0.035 * dy,
+        stage == "SF[a]" ~ tick_top + 0.070 * dy
+      )
+    )
+  
   ggplot(
-    dat %>% filter(contrast_type == "Current landscape"),
+    dat_land,
     aes(x = frac_bin, y = median, color = stage, group = stage)
   ) +
     geom_hline(yintercept = 0, linetype = "dashed", linewidth = 0.35) +
     geom_line(linewidth = 0.8, linetype = "22") +
+    
+    geom_linerange(
+      data = dat_sig,
+      aes(
+        x = frac_bin,
+        ymin = y_tick - 0.008 * dy,
+        ymax = y_tick + 0.008 * dy,
+        color = sig_col
+      ),
+      linewidth = 1.15,
+      inherit.aes = FALSE,
+      show.legend = FALSE
+    ) +
+    
     scale_x_discrete(
       drop = FALSE,
-      breaks = bin_levels[c(FALSE, TRUE)]) +
+      breaks = bin_levels[c(FALSE, TRUE)]
+    ) +
+    coord_cartesian(ylim = yrng, clip = "off") +
+    
     scale_color_manual(
-      values = cols_by_response[[response_var]],
+      values = c(
+        cols_by_response[[response_var]],
+        "Not significant" = "grey75"
+      ),
+      breaks = c("SF[e]", "SF[i]", "SF[a]"),
       labels = parse(text = c("bold(SF[e])", "bold(SF[i])", "bold(SF[a])"))
     ) +
     labs(
@@ -3909,6 +4879,7 @@ make_p_land <- function(dat, response_var, show_legend = FALSE, first_col = FALS
       ),
       color = NULL
     ) +
+   
     theme_bw(base_size = 10) +
     theme(
       text = element_text(face = "bold", family = "serif"),
@@ -3918,9 +4889,9 @@ make_p_land <- function(dat, response_var, show_legend = FALSE, first_col = FALS
       legend.text = element_text(size = 9, face = "bold"),
       legend.key.width = unit(0.45, "cm"),
       legend.key.height = unit(0.25, "cm"),
-      legend.margin = margin(t = -3, r = 0, b = -6, l = 0),
-      legend.box.margin = margin(t = -6, r = 0, b = -8, l = 0),
-      plot.margin = margin(t = 2, r = 6, b = 10, l = 4),
+      legend.margin = margin(t = 2, r = 0, b = 6, l = 0),
+      legend.box.margin = margin(t = 2, r = 0, b = 8, l = 0),
+      plot.margin = margin(t = 8, r = 6, b = 10, l = 4),
       legend.position = ifelse(show_legend, "top", "none"),
       legend.direction = "horizontal",
       panel.grid.minor = element_blank()
@@ -3933,13 +4904,25 @@ make_p_year <- function(dat, response_var, first_col = FALSE) {
   
   ggplot(dat, aes(x = Ano, y = median)) +
     geom_hline(yintercept = 0, linetype = "dashed", linewidth = 0.35) +
-    geom_ribbon(aes(ymin = lower, ymax = upper), fill = color_year[[response_var]], alpha = 0.18) +
-    geom_line(linewidth = 0.85, color = color_year[[response_var]]) +
-    geom_point(size = 1.5, color = color_year[[response_var]]) +
-    scale_x_continuous(
-      breaks = seq(2001, 2021, by = 5),
-      limits = c(2001, 2021)
+    geom_ribbon(
+      aes(ymin = lower, ymax = upper),
+      fill = color_year[[response_var]],
+      alpha = 0.25
     ) +
+    
+    geom_line(
+      linewidth = 0.95,
+      color = color_year[[response_var]]
+    ) +
+    
+    geom_point(
+      size = 2.0,
+      color = color_year[[response_var]]
+    ) +
+        scale_x_continuous(
+          breaks = seq(2001, 2021, by = 5),
+          limits = c(2001, 2021)
+        ) +
     labs(
       x = NULL,
       y = ifelse(
@@ -3983,7 +4966,7 @@ make_p_spatial <- function(dat, response_var, first_col = FALSE) {
       text = element_text(face = "bold", family = "serif"),
       axis.title = element_text(size = 10),
       axis.text = element_text(size = 9, color = "black"),
-      legend.position = "top",
+      legend.position = "bottom",
       legend.direction = "horizontal",
       legend.title = element_text(size = 9, face = "bold"),
       legend.text = element_text(size = 8.5),
@@ -4072,6 +5055,7 @@ ggsave(
   file.path(out_fig_dir, paste0("figure_spat_effect_", region_name, ".png")),
   p_spatial_list, width = 9, height = 5.5, dpi = 600, bg = "white")
 
+
 ```
 
 #### Panel
@@ -4120,7 +5104,8 @@ dir.create(out_fig_dir, showWarnings = FALSE, recursive = TRUE)
 
 ggsave(
   file.path(out_fig_dir, paste0("painels/figure_ensemble_", region_name, "_all_variables.png")),
-  fig_region, width = 10, height = 12, dpi = 600, bg = "white")
+  fig_region, width = 10, height = 12, dpi = 600, bg = "white"
+)
 
 ggsave(file.path(out_fig_dir, paste0("painels/figure_ensemble_", region_name, "_all_variables.pdf")), 
        plot = fig_region, width = 10, height = 12, bg = "white")
@@ -4128,6 +5113,288 @@ ggsave(file.path(out_fig_dir, paste0("painels/figure_ensemble_", region_name, "_
 ```
 
 ### Diagnostics 
+
+#### Stabilization
+
+```{r}
+
+region_name <- "EBA"
+
+response_vars <- c("Prec", "Evapo", "Temp")
+
+response_labels <- c(
+  Prec  = "Precipitation",
+  Evapo = "ET",
+  Temp  = "LST"
+)
+
+response_units <- c(
+  Prec  = "mm",
+  Evapo = "mm",
+  Temp  = "°C"
+)
+
+color_year <- c(
+  Prec  = "midnightblue",
+  Evapo = "#02401B",
+  Temp  = "#7F3B08"
+)
+
+contrast_type_select <- "Spatially adjusted"
+
+cover_values <- c(0.25, 0.50, 0.75)
+
+contrast_cols <- c(
+  "PF_minus_SF_early",
+  "PF_minus_SF_intermediate",
+  "PF_minus_SF_advanced"
+)
+
+contrast_labels <- c(
+  PF_minus_SF_early = "PF - SF[e]",
+  PF_minus_SF_intermediate = "PF - SF[i]",
+  PF_minus_SF_advanced = "PF - SF[a]"
+)
+
+n_perm <- 200
+
+set.seed(123)
+
+
+calc_stability_one <- function(region_name,
+                               response_var,
+                               contrast_col,
+                               cover_value,
+                               n_perm = 200) {
+  
+  out_dir <- paste0(
+    "spamm_ensemble_",
+    tolower(response_var),
+    "_diagnostics_",
+    region_name
+  )
+  
+  file_contrasts <- file.path(
+    out_dir,
+    "tables",
+    "contrasts_ensemble_all_runs.csv"
+  )
+  
+  if (!file.exists(file_contrasts)) {
+    stop("File not found: ", file_contrasts)
+  }
+  
+  contr <- fread(file_contrasts)
+  
+  tmp0 <- contr %>%
+    filter(contrast_type == contrast_type_select)
+  
+  tmp <- tmp0 %>%
+  mutate(
+    cover_diff = abs(frac_area - cover_value)
+  ) %>%
+  group_by(run) %>%
+  slice_min(
+    order_by = cover_diff,
+    n = 1,
+    with_ties = FALSE
+  ) %>%
+  ungroup() %>%
+  select(run, value = all_of(contrast_col)) %>%
+  filter(!is.na(value))
+  
+  runs_available <- sort(unique(tmp$run))
+  
+  if (length(runs_available) < 3) {
+    stop(
+      "Too few runs available for ",
+      response_var, " | ",
+      contrast_col, " | cover ",
+      cover_value
+    )
+  }
+  
+  stab_list <- list()
+  
+  for (p in seq_len(n_perm)) {
+    
+    run_order <- sample(runs_available)
+    
+    for (n in 2:length(run_order)) {
+      
+      sel_runs <- run_order[1:n]
+      
+      est <- tmp %>%
+        filter(run %in% sel_runs) %>%
+        summarise(
+          median_est = median(value, na.rm = TRUE)
+        ) %>%
+        pull(median_est)
+      
+      stab_list[[length(stab_list) + 1]] <- data.frame(
+        response = response_var,
+        response_label = response_labels[[response_var]],
+        unit = response_units[[response_var]],
+        permutation = p,
+        n_runs = n,
+        estimate = est,
+        contrast = contrast_labels[[contrast_col]],
+        cover_value = cover_value,
+        cover_label = paste0(round(cover_value * 100), "% cover")
+      )
+    }
+  }
+  
+  bind_rows(stab_list)
+}
+
+
+stab_all <- list()
+
+for (rv in response_vars) {
+  for (cc in contrast_cols) {
+    for (cv in cover_values) {
+      
+      message(
+        "Processing: ",
+        region_name, " | ",
+        rv, " | ",
+        cc, " | cover = ",
+        cv
+      )
+      
+      stab_all[[paste(rv, cc, cv, sep = "_")]] <-
+        calc_stability_one(
+          region_name = region_name,
+          response_var = rv,
+          contrast_col = cc,
+          cover_value = cv,
+          n_perm = n_perm
+        )
+    }
+  }
+}
+
+stab_df <- bind_rows(stab_all)
+
+stab_df <- stab_df %>%
+  group_by(
+    response,
+    contrast,
+    cover_value
+  ) %>%
+  mutate(
+    final_estimate = median(
+      estimate[n_runs == max(n_runs)],
+      na.rm = TRUE
+    ),
+    estimate_centered =
+      estimate - final_estimate
+  ) %>%
+  ungroup()
+
+stab_summary <- stab_df %>%
+  group_by(
+    response,
+    response_label,
+    unit,
+    contrast,
+    cover_value,
+    cover_label,
+    n_runs
+  ) %>%
+  summarise(
+    median = median(estimate_centered, na.rm = TRUE),
+    lower = quantile(estimate_centered, 0.025, na.rm = TRUE),
+    upper = quantile(estimate_centered, 0.975, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    response_label = factor(
+      response_label,
+      levels = response_labels[response_vars]
+    ),
+    contrast = factor(
+      contrast,
+      levels = contrast_labels[contrast_cols]
+    ),
+    cover_label = factor(
+      cover_label,
+      levels = paste0(round(cover_values * 100), "% cover")
+    )
+  )
+
+
+out_table_dir <- file.path("fig",  "stability",  "tables")
+
+dir.create(out_table_dir, recursive = TRUE, showWarnings = FALSE)
+
+fwrite(stab_df,
+  file.path(out_table_dir,
+    paste0("ensemble_stability_all_permutations_all_variables_", region_name, ".csv")))
+
+fwrite( stab_summary,
+  file.path(out_table_dir,
+    paste0("ensemble_stability_summary_all_variables_", region_name, ".csv")))
+
+format_y_stability <- function(x) {
+  ifelse(abs(x) < 0.1, sprintf("%.2f", x), as.character(x))
+}
+
+p_stability_all <- ggplot(
+  stab_summary,
+  aes(x = n_runs, y = median, color = response, fill = response)
+) +
+  geom_ribbon(
+    aes(ymin = lower, ymax = upper),
+    alpha = 0.16,
+    color = NA) +
+  geom_hline(yintercept = 0, linetype = "dashed",
+             linewidth = 0.35, color = "grey35") +
+  geom_line(linewidth = 0.75) +
+  geom_point(size = 1.1) +
+  facet_grid(
+    response_label + contrast ~ cover_label,
+    scales = "free_y",
+    labeller = labeller(
+      contrast = label_parsed)) +
+  scale_y_continuous(
+  labels = format_y_stability) +
+  scale_color_manual(values = color_year, guide = "none") +
+  scale_fill_manual(values = color_year, guide = "none") +
+  labs(
+    x = "Number of ensemble repetitions",
+    y = "Deviation from the final ensemble estimate (30 runs)",
+    title = paste0("Stability of ensemble estimates - ", region_name)
+  ) +
+  theme_bw(base_size = 12) +
+  theme(
+    text = element_text(face = "bold", family = "serif"),
+    plot.title = element_text(hjust = 0.5, size = 13),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 11, color = "black"),
+    strip.text = element_text(size = 11, face = "bold"),
+    strip.background = element_rect(fill = "transparent", color = "transparent"),
+    panel.grid.minor = element_blank()
+  )
+
+p_stability_all
+
+
+out_fig_dir <- file.path("fig", "stability")
+dir.create(out_fig_dir, recursive = TRUE, showWarnings = FALSE)
+
+ggsave(
+  file.path(out_fig_dir,
+    paste0("ensemble_stability_all_variables_", region_name, ".png")  ),
+  p_stability_all,  width = 10,  height = 13,  dpi = 600,  bg = "white")
+
+ggsave(
+  file.path(out_fig_dir,
+    paste0("ensemble_stability_all_variables_", region_name, ".pdf")),
+  p_stability_all,  width = 10,  height = 13,  bg = "white")
+
+```
 
 #### Functions
 
@@ -4597,10 +5864,10 @@ color_year <- c(
   Temp  = "#7F3B08")
 
 x_forest_scale <- scale_x_continuous(
-  limits = c(0, 1),
+  limits = c(0, 1.01),
   breaks = seq(0, 1, by = 0.25),
   labels = scales::percent_format(accuracy = 1),
-  expand = expansion(mult = c(0.01, 0.01))
+  expand = expansion(mult = c(0, 0))
 )
 
 rdBu_10 <- c(
@@ -4703,6 +5970,9 @@ load_response_results <- function(response_var, region_name) {
       upper = safe_quantile(difference, 0.975),
       n_runs = n_distinct(run),
       .groups = "drop"
+    ) %>%
+    mutate(
+      significant = lower > 0 | upper < 0
     )
   
   fwrite(
@@ -4779,6 +6049,7 @@ load_response_results <- function(response_var, region_name) {
   )
 }
 
+
 ```
 
 #### Plots functions
@@ -4808,31 +6079,80 @@ make_p_adj <- function(dat, response_var, show_legend = FALSE, first_col = FALSE
   unit <- response_units[[response_var]]
   label <- response_labels[[response_var]]
   
+  dat_adj <- dat %>% 
+    filter(contrast_type == "Spatially adjusted")
+  
+  yrng <- range(c(dat_adj$lower, dat_adj$upper, dat_adj$median), na.rm = TRUE)
+  dy <- diff(yrng)
+  
+  tick_top <- yrng[2] + 0.095 * dy
+  tick_half <- 0.004
+  
+  dat_sig <- dat_adj %>%
+    mutate(
+      sig_col = ifelse(significant, as.character(stage), "Not significant"),
+      y_tick = case_when(
+        stage == "SF[e]" ~ tick_top,
+        stage == "SF[i]" ~ tick_top + 0.035 * dy,
+        stage == "SF[a]" ~ tick_top + 0.070 * dy
+      ),
+      tick_half <- 0.004,
+      x_center = pmin(pmax(frac_plot, tick_half), 1 - tick_half),
+      x_start  = x_center - tick_half,
+      x_end    = x_center + tick_half
+    )
+  
   ggplot(
-    dat %>% filter(contrast_type == "Spatially adjusted"),
+    dat_adj,
     aes(x = frac_plot, y = median, color = stage, fill = stage)
   ) +
     geom_hline(yintercept = 0, linetype = "dashed", linewidth = 0.35) +
     geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.18, color = NA) +
     geom_line(linewidth = 0.8) +
+    
+    geom_segment(
+      data = dat_sig,
+      aes(
+        x = x_start,
+        xend = x_end,
+        y = y_tick,
+        yend = y_tick,
+        color = sig_col
+      ),
+      linewidth = 1.0,
+      inherit.aes = FALSE,
+      show.legend = FALSE
+    ) +
+    
     x_forest_scale +
+    
+    coord_cartesian(ylim = yrng, clip = "off") +
+    
     scale_color_manual(
-      values = cols_by_response[[response_var]],
-      labels = parse(text = c("bold(SF[e])", "bold(SF[i])", "bold(SF[a])"))) +
+      values = c(
+        cols_by_response[[response_var]],
+        "Not significant" = "grey75"
+      ),
+      breaks = c("SF[e]", "SF[i]", "SF[a]"),
+      labels = parse(text = c("bold(SF[e])", "bold(SF[i])", "bold(SF[a])"))
+    ) +
     scale_fill_manual(
       values = cols_by_response[[response_var]],
       labels = parse(text = c("bold(SF[e])", "bold(SF[i])", "bold(SF[a])")),
-      guide = "none") +
+      guide = "none"
+    ) +
     labs(
       title = label,
       x = NULL,
       y = ifelse(
         first_col,
-        paste0("Comparable landscape\nPF − SF(", unit, ")"),
-        paste0("\nPF − SF(", unit, ")")),
+        paste0("Standardized\nPF − SF(", unit, ")"),
+        paste0("\nPF − SF(", unit, ")")
+      ),
       color = NULL,
       fill = NULL
     ) +
+    
     theme_bw(base_size = 10) +
     theme(
       text = element_text(face = "bold", family = "serif"),
@@ -4842,9 +6162,9 @@ make_p_adj <- function(dat, response_var, show_legend = FALSE, first_col = FALSE
       legend.text = element_text(size = 9, face = "bold"),
       legend.key.width = unit(0.45, "cm"),
       legend.key.height = unit(0.25, "cm"),
-      legend.margin = margin(t = -3, r = 0, b = -6, l = 0),
-      legend.box.margin = margin(t = -6, r = 0, b = -8, l = 0),
-      plot.margin = margin(t = 2, r = 6, b = 10, l = 4),
+      legend.margin = margin(t = 2, r = 0, b = 6, l = 0),
+      legend.box.margin = margin(t = 2, r = 0, b = 8, l = 0),
+      plot.margin = margin(t = 8, r = 6, b = 10, l = 4),
       legend.position = ifelse(show_legend, "top", "none"),
       legend.direction = "horizontal",
       panel.grid.minor = element_blank()
@@ -4855,17 +6175,56 @@ make_p_land <- function(dat, response_var, show_legend = FALSE, first_col = FALS
   
   unit <- response_units[[response_var]]
   
+  dat_land <- dat %>% 
+    filter(contrast_type == "Current landscape")
+  
+  yrng <- range(c(dat_land$median), na.rm = TRUE)
+  dy <- diff(yrng)
+  
+  tick_top <- yrng[2] + 0.095 * dy
+  
+  dat_sig <- dat_land %>%
+    mutate(
+      sig_col = ifelse(significant, as.character(stage), "Not significant"),
+      y_tick = case_when(
+        stage == "SF[e]" ~ tick_top,
+        stage == "SF[i]" ~ tick_top + 0.035 * dy,
+        stage == "SF[a]" ~ tick_top + 0.070 * dy
+      )
+    )
+  
   ggplot(
-    dat %>% filter(contrast_type == "Current landscape"),
+    dat_land,
     aes(x = frac_bin, y = median, color = stage, group = stage)
   ) +
     geom_hline(yintercept = 0, linetype = "dashed", linewidth = 0.35) +
     geom_line(linewidth = 0.8, linetype = "22") +
+    
+    geom_linerange(
+      data = dat_sig,
+      aes(
+        x = frac_bin,
+        ymin = y_tick - 0.008 * dy,
+        ymax = y_tick + 0.008 * dy,
+        color = sig_col
+      ),
+      linewidth = 1.15,
+      inherit.aes = FALSE,
+      show.legend = FALSE
+    ) +
+    
     scale_x_discrete(
       drop = FALSE,
-      breaks = bin_levels[c(FALSE, TRUE)]) +
+      breaks = bin_levels[c(FALSE, TRUE)]
+    ) +
+    coord_cartesian(ylim = yrng, clip = "off") +
+    
     scale_color_manual(
-      values = cols_by_response[[response_var]],
+      values = c(
+        cols_by_response[[response_var]],
+        "Not significant" = "grey75"
+      ),
+      breaks = c("SF[e]", "SF[i]", "SF[a]"),
       labels = parse(text = c("bold(SF[e])", "bold(SF[i])", "bold(SF[a])"))
     ) +
     labs(
@@ -4877,6 +6236,7 @@ make_p_land <- function(dat, response_var, show_legend = FALSE, first_col = FALS
       ),
       color = NULL
     ) +
+   
     theme_bw(base_size = 10) +
     theme(
       text = element_text(face = "bold", family = "serif"),
@@ -4886,9 +6246,9 @@ make_p_land <- function(dat, response_var, show_legend = FALSE, first_col = FALS
       legend.text = element_text(size = 9, face = "bold"),
       legend.key.width = unit(0.45, "cm"),
       legend.key.height = unit(0.25, "cm"),
-      legend.margin = margin(t = -3, r = 0, b = -6, l = 0),
-      legend.box.margin = margin(t = -6, r = 0, b = -8, l = 0),
-      plot.margin = margin(t = 2, r = 6, b = 10, l = 4),
+      legend.margin = margin(t = 2, r = 0, b = 6, l = 0),
+      legend.box.margin = margin(t = 2, r = 0, b = 8, l = 0),
+      plot.margin = margin(t = 8, r = 6, b = 10, l = 4),
       legend.position = ifelse(show_legend, "top", "none"),
       legend.direction = "horizontal",
       panel.grid.minor = element_blank()
@@ -4901,13 +6261,25 @@ make_p_year <- function(dat, response_var, first_col = FALSE) {
   
   ggplot(dat, aes(x = Ano, y = median)) +
     geom_hline(yintercept = 0, linetype = "dashed", linewidth = 0.35) +
-    geom_ribbon(aes(ymin = lower, ymax = upper), fill = color_year[[response_var]], alpha = 0.18) +
-    geom_line(linewidth = 0.85, color = color_year[[response_var]]) +
-    geom_point(size = 1.5, color = color_year[[response_var]]) +
-    scale_x_continuous(
-      breaks = seq(2001, 2021, by = 5),
-      limits = c(2001, 2021)
+    geom_ribbon(
+      aes(ymin = lower, ymax = upper),
+      fill = color_year[[response_var]],
+      alpha = 0.25
     ) +
+    
+    geom_line(
+      linewidth = 0.95,
+      color = color_year[[response_var]]
+    ) +
+    
+    geom_point(
+      size = 2.0,
+      color = color_year[[response_var]]
+    ) +
+        scale_x_continuous(
+          breaks = seq(2001, 2021, by = 5),
+          limits = c(2001, 2021)
+        ) +
     labs(
       x = NULL,
       y = ifelse(
@@ -4930,7 +6302,7 @@ make_p_spatial <- function(dat, response_var, first_col = FALSE) {
   
   ggplot(dat, aes(x = Lon, y = Lat, z = spatial_median)) +
     stat_summary_2d(fun = median, bins = 120) +
-    coord_quickmap(expand = TRUE) +
+    coord_quickmap(expand = FALSE) +
     scale_fill_stepsn(
       colours = spatial_cols[[response_var]],
       breaks = spatial_breaks[[response_var]],
@@ -4951,16 +6323,14 @@ make_p_spatial <- function(dat, response_var, first_col = FALSE) {
       text = element_text(face = "bold", family = "serif"),
       axis.title = element_text(size = 10),
       axis.text = element_text(size = 9, color = "black"),
-      legend.position = c(0.5, 1.75),
-      legend.justification = c(0.5, 1),
+      legend.position = "bottom",
       legend.direction = "horizontal",
       legend.title = element_text(size = 9, face = "bold"),
       legend.text = element_text(size = 8.5),
-      legend.background = element_blank(),
-      legend.box.background = element_blank(),
-      plot.margin = margin(t = 35, r = 2, b = 0, l = 2),
-      panel.grid.minor = element_blank()
-    )
+      legend.box.margin = margin(t = -6, r = 0, b = 2, l = 0),
+      legend.margin = margin(t = -6, r = 0, b = 2, l = 0),
+      plot.margin = margin(t = -8, r = 2, b = 8, l = 2),
+      panel.grid.minor = element_blank())
   
 }
 
@@ -5042,6 +6412,7 @@ ggsave(
   file.path(out_fig_dir, paste0("figure_spat_effect_", region_name, ".png")),
   p_spatial_list, width = 9, height = 5.5, dpi = 600, bg = "white")
 
+
 ```
 
 #### Panel
@@ -5066,7 +6437,7 @@ fig_region <-
   wrap_plots(p_land_list, nrow = 1) /
   wrap_plots(p_year_list, nrow = 1) /
   wrap_plots(p_spatial_list, nrow = 1,  widths = c(1, 1, 1)) +
-  plot_layout(heights = c(1, 1, 0.9, 1.20)) +
+  plot_layout(heights = c(1, 1, 0.9, 0.8)) +
   plot_annotation(
     title = region_name,
     theme = theme(
@@ -5090,7 +6461,8 @@ dir.create(out_fig_dir, showWarnings = FALSE, recursive = TRUE)
 
 ggsave(
   file.path(out_fig_dir, paste0("painels/figure_ensemble_", region_name, "_all_variables.png")),
-  fig_region, width = 10, height = 12, dpi = 600, bg = "white")
+  fig_region, width = 10, height = 12, dpi = 600, bg = "white"
+)
 
 ggsave(file.path(out_fig_dir, paste0("painels/figure_ensemble_", region_name, "_all_variables.pdf")), 
        plot = fig_region, width = 10, height = 12, bg = "white")
@@ -5098,6 +6470,288 @@ ggsave(file.path(out_fig_dir, paste0("painels/figure_ensemble_", region_name, "_
 ```
 
 ### Diagnostics 
+
+#### Stabilization
+
+```{r}
+
+region_name <- "SBA"
+
+response_vars <- c("Prec", "Evapo", "Temp")
+
+response_labels <- c(
+  Prec  = "Precipitation",
+  Evapo = "ET",
+  Temp  = "LST"
+)
+
+response_units <- c(
+  Prec  = "mm",
+  Evapo = "mm",
+  Temp  = "°C"
+)
+
+color_year <- c(
+  Prec  = "midnightblue",
+  Evapo = "#02401B",
+  Temp  = "#7F3B08"
+)
+
+contrast_type_select <- "Spatially adjusted"
+
+cover_values <- c(0.25, 0.50, 0.75)
+
+contrast_cols <- c(
+  "PF_minus_SF_early",
+  "PF_minus_SF_intermediate",
+  "PF_minus_SF_advanced"
+)
+
+contrast_labels <- c(
+  PF_minus_SF_early = "PF - SF[e]",
+  PF_minus_SF_intermediate = "PF - SF[i]",
+  PF_minus_SF_advanced = "PF - SF[a]"
+)
+
+n_perm <- 200
+
+set.seed(123)
+
+
+calc_stability_one <- function(region_name,
+                               response_var,
+                               contrast_col,
+                               cover_value,
+                               n_perm = 200) {
+  
+  out_dir <- paste0(
+    "spamm_ensemble_",
+    tolower(response_var),
+    "_diagnostics_",
+    region_name
+  )
+  
+  file_contrasts <- file.path(
+    out_dir,
+    "tables",
+    "contrasts_ensemble_all_runs.csv"
+  )
+  
+  if (!file.exists(file_contrasts)) {
+    stop("File not found: ", file_contrasts)
+  }
+  
+  contr <- fread(file_contrasts)
+  
+  tmp0 <- contr %>%
+    filter(contrast_type == contrast_type_select)
+  
+  tmp <- tmp0 %>%
+  mutate(
+    cover_diff = abs(frac_area - cover_value)
+  ) %>%
+  group_by(run) %>%
+  slice_min(
+    order_by = cover_diff,
+    n = 1,
+    with_ties = FALSE
+  ) %>%
+  ungroup() %>%
+  select(run, value = all_of(contrast_col)) %>%
+  filter(!is.na(value))
+  
+  runs_available <- sort(unique(tmp$run))
+  
+  if (length(runs_available) < 3) {
+    stop(
+      "Too few runs available for ",
+      response_var, " | ",
+      contrast_col, " | cover ",
+      cover_value
+    )
+  }
+  
+  stab_list <- list()
+  
+  for (p in seq_len(n_perm)) {
+    
+    run_order <- sample(runs_available)
+    
+    for (n in 2:length(run_order)) {
+      
+      sel_runs <- run_order[1:n]
+      
+      est <- tmp %>%
+        filter(run %in% sel_runs) %>%
+        summarise(
+          median_est = median(value, na.rm = TRUE)
+        ) %>%
+        pull(median_est)
+      
+      stab_list[[length(stab_list) + 1]] <- data.frame(
+        response = response_var,
+        response_label = response_labels[[response_var]],
+        unit = response_units[[response_var]],
+        permutation = p,
+        n_runs = n,
+        estimate = est,
+        contrast = contrast_labels[[contrast_col]],
+        cover_value = cover_value,
+        cover_label = paste0(round(cover_value * 100), "% cover")
+      )
+    }
+  }
+  
+  bind_rows(stab_list)
+}
+
+
+stab_all <- list()
+
+for (rv in response_vars) {
+  for (cc in contrast_cols) {
+    for (cv in cover_values) {
+      
+      message(
+        "Processing: ",
+        region_name, " | ",
+        rv, " | ",
+        cc, " | cover = ",
+        cv
+      )
+      
+      stab_all[[paste(rv, cc, cv, sep = "_")]] <-
+        calc_stability_one(
+          region_name = region_name,
+          response_var = rv,
+          contrast_col = cc,
+          cover_value = cv,
+          n_perm = n_perm
+        )
+    }
+  }
+}
+
+stab_df <- bind_rows(stab_all)
+
+stab_df <- stab_df %>%
+  group_by(
+    response,
+    contrast,
+    cover_value
+  ) %>%
+  mutate(
+    final_estimate = median(
+      estimate[n_runs == max(n_runs)],
+      na.rm = TRUE
+    ),
+    estimate_centered =
+      estimate - final_estimate
+  ) %>%
+  ungroup()
+
+stab_summary <- stab_df %>%
+  group_by(
+    response,
+    response_label,
+    unit,
+    contrast,
+    cover_value,
+    cover_label,
+    n_runs
+  ) %>%
+  summarise(
+    median = median(estimate_centered, na.rm = TRUE),
+    lower = quantile(estimate_centered, 0.025, na.rm = TRUE),
+    upper = quantile(estimate_centered, 0.975, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    response_label = factor(
+      response_label,
+      levels = response_labels[response_vars]
+    ),
+    contrast = factor(
+      contrast,
+      levels = contrast_labels[contrast_cols]
+    ),
+    cover_label = factor(
+      cover_label,
+      levels = paste0(round(cover_values * 100), "% cover")
+    )
+  )
+
+
+out_table_dir <- file.path("fig",  "stability",  "tables")
+
+dir.create(out_table_dir, recursive = TRUE, showWarnings = FALSE)
+
+fwrite(stab_df,
+  file.path(out_table_dir,
+    paste0("ensemble_stability_all_permutations_all_variables_", region_name, ".csv")))
+
+fwrite( stab_summary,
+  file.path(out_table_dir,
+    paste0("ensemble_stability_summary_all_variables_", region_name, ".csv")))
+
+format_y_stability <- function(x) {
+  ifelse(abs(x) < 0.1, sprintf("%.2f", x), as.character(x))
+}
+
+p_stability_all <- ggplot(
+  stab_summary,
+  aes(x = n_runs, y = median, color = response, fill = response)
+) +
+  geom_ribbon(
+    aes(ymin = lower, ymax = upper),
+    alpha = 0.16,
+    color = NA) +
+  geom_hline(yintercept = 0, linetype = "dashed",
+             linewidth = 0.35, color = "grey35") +
+  geom_line(linewidth = 0.75) +
+  geom_point(size = 1.1) +
+  facet_grid(
+    response_label + contrast ~ cover_label,
+    scales = "free_y",
+    labeller = labeller(
+      contrast = label_parsed)) +
+  scale_y_continuous(
+  labels = format_y_stability) +
+  scale_color_manual(values = color_year, guide = "none") +
+  scale_fill_manual(values = color_year, guide = "none") +
+  labs(
+    x = "Number of ensemble repetitions",
+    y = "Deviation from the final ensemble estimate (30 runs)",
+    title = paste0("Stability of ensemble estimates - ", region_name)
+  ) +
+  theme_bw(base_size = 12) +
+  theme(
+    text = element_text(face = "bold", family = "serif"),
+    plot.title = element_text(hjust = 0.5, size = 13),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 11, color = "black"),
+    strip.text = element_text(size = 11, face = "bold"),
+    strip.background = element_rect(fill = "transparent", color = "transparent"),
+    panel.grid.minor = element_blank()
+  )
+
+p_stability_all
+
+
+out_fig_dir <- file.path("fig", "stability")
+dir.create(out_fig_dir, recursive = TRUE, showWarnings = FALSE)
+
+ggsave(
+  file.path(out_fig_dir,
+    paste0("ensemble_stability_all_variables_", region_name, ".png")  ),
+  p_stability_all,  width = 10,  height = 13,  dpi = 600,  bg = "white")
+
+ggsave(
+  file.path(out_fig_dir,
+    paste0("ensemble_stability_all_variables_", region_name, ".pdf")),
+  p_stability_all,  width = 10,  height = 13,  bg = "white")
+
+```
 
 #### Functions
 
