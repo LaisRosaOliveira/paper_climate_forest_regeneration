@@ -3419,7 +3419,7 @@ make_p_adj <- function(dat, response_var, show_legend = FALSE, first_col = FALSE
     scale_color_manual(
       values = c(
         cols_by_response[[response_var]],
-        "Not significant" = "grey75"
+        "Not significant" = "grey95"
       ),
       breaks = c("SF[e]", "SF[i]", "SF[a]"),
       labels = parse(text = c("bold(SF[e])", "bold(SF[i])", "bold(SF[a])"))
@@ -3510,7 +3510,7 @@ make_p_land <- function(dat, response_var, show_legend = FALSE, first_col = FALS
     scale_color_manual(
       values = c(
         cols_by_response[[response_var]],
-        "Not significant" = "grey75"
+        "Not significant" = "grey95"
       ),
       breaks = c("SF[e]", "SF[i]", "SF[a]"),
       labels = parse(text = c("bold(SF[e])", "bold(SF[i])", "bold(SF[a])"))
@@ -4774,7 +4774,7 @@ make_p_adj <- function(dat, response_var, show_legend = FALSE, first_col = FALSE
     scale_color_manual(
       values = c(
         cols_by_response[[response_var]],
-        "Not significant" = "grey75"
+        "Not significant" = "grey95"
       ),
       breaks = c("SF[e]", "SF[i]", "SF[a]"),
       labels = parse(text = c("bold(SF[e])", "bold(SF[i])", "bold(SF[a])"))
@@ -4865,7 +4865,7 @@ make_p_land <- function(dat, response_var, show_legend = FALSE, first_col = FALS
     scale_color_manual(
       values = c(
         cols_by_response[[response_var]],
-        "Not significant" = "grey75"
+        "Not significant" = "grey95"
       ),
       breaks = c("SF[e]", "SF[i]", "SF[a]"),
       labels = parse(text = c("bold(SF[e])", "bold(SF[i])", "bold(SF[a])"))
@@ -6131,7 +6131,7 @@ make_p_adj <- function(dat, response_var, show_legend = FALSE, first_col = FALSE
     scale_color_manual(
       values = c(
         cols_by_response[[response_var]],
-        "Not significant" = "grey75"
+        "Not significant" = "grey95"
       ),
       breaks = c("SF[e]", "SF[i]", "SF[a]"),
       labels = parse(text = c("bold(SF[e])", "bold(SF[i])", "bold(SF[a])"))
@@ -6222,7 +6222,7 @@ make_p_land <- function(dat, response_var, show_legend = FALSE, first_col = FALS
     scale_color_manual(
       values = c(
         cols_by_response[[response_var]],
-        "Not significant" = "grey75"
+        "Not significant" = "grey95"
       ),
       breaks = c("SF[e]", "SF[i]", "SF[a]"),
       labels = parse(text = c("bold(SF[e])", "bold(SF[i])", "bold(SF[a])"))
