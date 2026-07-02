@@ -557,9 +557,9 @@ p_ast_prec_w <- all_pf_sf_prec %>%
     legend.position = c(0.77, 0.84),
     legend.background = element_rect(fill = "transparent"),
     text = element_text(size = 12, face = "bold", family = "serif"), 
-    axis.text = element_text(size = 10, face = "plain", family = "serif", color = "black"),
+    axis.text = element_text(size = 12, face = "plain", family = "serif", color = "black"),
     axis.text.x = element_blank(),
-    legend.text = element_text(size = 9),
+    legend.text = element_text(size = 9.5),
     panel.spacing.x = unit(1, "lines"), 
     panel.spacing.y = unit(1, "lines"),
     axis.title = element_text(size = 14, margin = margin(r = 20)),
@@ -908,11 +908,11 @@ p_ast_evapo_w <- all_pf_sf_evapo %>%
     #legend.position = "top",
     text = element_text(size = 12, face = "bold",family = "serif"), 
     #text = element_text(size = 7, face = "bold",family = "serif"), 
-    axis.text = element_text(size = 10, face = "plain", family = "serif", color = "black"),
+    axis.text = element_text(size = 12, face = "plain", family = "serif", color = "black"),
     #axis.text = element_text(size = 6, face = "plain", family = "serif", color = "black"),
     axis.text.x = element_blank(),
     #axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-    legend.text = element_text(size = 9),
+    legend.text = element_text(size = 9.5),
     #legend.text = element_text(size = 7),
     panel.spacing.x = unit(1, "lines"),  
     panel.spacing.y = unit(1, "lines"),
@@ -1256,14 +1256,14 @@ p_ast_temp_w <-all_pf_sf_temp %>%
   facet_grid(~region) + 
   ggthemes::theme_few() +
   theme(
-    legend.position = c(0.91, 0.84),
+    legend.position = c(0.91, 0.83),
     legend.background = element_rect(fill="transparent"),
     text = element_text(size = 12, face = "bold",family = "serif"), 
     #text = element_text(size = 7, face = "bold",family = "serif"), 
-    axis.text = element_text(size = 10, face = "plain", family = "serif", color = "black"),
+    axis.text = element_text(size = 12, face = "plain", family = "serif", color = "black"),
     #axis.text.y = element_text(size = 12, face = "plain", family = "serif", color = "black"),
     axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-    legend.text = element_text(size = 9),
+    legend.text = element_text(size = 9.5),
     #legend.text = element_text(size = 7),
     panel.spacing.x = unit(1, "lines"),  
     panel.spacing.y = unit(1, "lines"),
@@ -2071,7 +2071,7 @@ if (n_workers == 1) {
 
 ## Coefficients
 
-```{r}
+```{r,eval = FALSE, echo = TRUE}
 
 response_var <- "Prec"
 
@@ -2502,7 +2502,7 @@ if (n_workers == 1) {
 
 ## Coefficients
 
-```{r}
+```{r,eval = FALSE, echo = TRUE}
 
 response_var <- "Evapo"
 
@@ -2932,7 +2932,7 @@ if (n_workers == 1) {
 
 ## Coefficients
 
-```{r}
+```{r,eval = FALSE, echo = TRUE}
 
 response_var <- "Temp"
 
@@ -3762,7 +3762,7 @@ ggsave(file.path(out_fig_dir, paste0("painels/figure_ensemble_", region_name, "_
 
 #### Stabilization
 
-```{r}
+```{r,eval = FALSE, echo = TRUE}
 
 region_name <- "CBA"
 
@@ -4013,13 +4013,13 @@ p_stability_all <- ggplot(
     y = "Deviation from the final ensemble estimate (30 runs)",
     title = paste0("Stability of ensemble estimates - ", region_name)
   ) +
-  theme_bw(base_size = 12) +
+  theme_bw(base_size = 12.5) +
   theme(
     text = element_text(face = "bold", family = "serif"),
     plot.title = element_text(hjust = 0.5, size = 13),
-    axis.title = element_text(size = 12),
-    axis.text = element_text(size = 11, color = "black"),
-    strip.text = element_text(size = 11, face = "bold"),
+    axis.title = element_text(size = 12.5),
+    axis.text = element_text(size = 12, color = "black"),
+    strip.text = element_text(size = 12.5, face = "bold"),
     strip.background = element_rect(fill = "transparent", color = "transparent"),
     panel.grid.minor = element_blank()
   )
@@ -4033,12 +4033,12 @@ dir.create(out_fig_dir, recursive = TRUE, showWarnings = FALSE)
 ggsave(
   file.path(out_fig_dir,
     paste0("ensemble_stability_all_variables_", region_name, ".png")  ),
-  p_stability_all,  width = 10,  height = 13,  dpi = 600,  bg = "white")
+  p_stability_all,  width = 10,  height = 12.5,  dpi = 600,  bg = "white")
 
 ggsave(
   file.path(out_fig_dir,
     paste0("ensemble_stability_all_variables_", region_name, ".pdf")),
-  p_stability_all,  width = 10,  height = 13,  bg = "white")
+  p_stability_all,  width = 10,  height = 12.5,  bg = "white")
 
 ```
 
@@ -4126,12 +4126,12 @@ load_diag_results <- function(response_var, region_name) {
 
 
 theme_diag <- function() {
-  theme_bw(base_size = 11) +
+  theme_bw(base_size = 12) +
     theme(
       text = element_text(face = "bold", family = "serif"),
       plot.title = element_text(hjust = 0.5, size = 12),
-      axis.title = element_text(size = 11),
-      axis.text = element_text(size = 10, color = "black"),
+      axis.title = element_text(size = 12),
+      axis.text = element_text(size =11.5, color = "black"),
       strip.text = element_blank(),
       strip.background = element_blank(),
       panel.grid.minor = element_blank(),
@@ -4211,7 +4211,7 @@ make_p_obs_pred <- function(dat, metrics, response_var, first_col = FALSE) {
       x = -Inf, y = Inf,
       label = label_txt,
       hjust = -0.1, vjust = 1.5,
-      size = 3.5,
+      size = 4,
       family = "serif",
       fontface = "bold"
     ) +
@@ -4441,6 +4441,9 @@ fig_diag_region <-
   )
 
 fig_diag_region
+
+out_fig_dir <- file.path("fig")
+dir.create(out_fig_dir, recursive = TRUE, showWarnings = FALSE)
 
 ggsave(
   file.path(out_fig_dir, paste0("painels/figure_diagnostics_", region_name, "_all_variables.png")),
@@ -5116,7 +5119,7 @@ ggsave(file.path(out_fig_dir, paste0("painels/figure_ensemble_", region_name, "_
 
 #### Stabilization
 
-```{r}
+```{r,eval = FALSE, echo = TRUE}
 
 region_name <- "EBA"
 
@@ -5367,13 +5370,13 @@ p_stability_all <- ggplot(
     y = "Deviation from the final ensemble estimate (30 runs)",
     title = paste0("Stability of ensemble estimates - ", region_name)
   ) +
-  theme_bw(base_size = 12) +
+  theme_bw(base_size = 12.5) +
   theme(
     text = element_text(face = "bold", family = "serif"),
     plot.title = element_text(hjust = 0.5, size = 13),
-    axis.title = element_text(size = 12),
-    axis.text = element_text(size = 11, color = "black"),
-    strip.text = element_text(size = 11, face = "bold"),
+    axis.title = element_text(size = 12.5),
+    axis.text = element_text(size = 12, color = "black"),
+    strip.text = element_text(size = 12.5, face = "bold"),
     strip.background = element_rect(fill = "transparent", color = "transparent"),
     panel.grid.minor = element_blank()
   )
@@ -5387,12 +5390,12 @@ dir.create(out_fig_dir, recursive = TRUE, showWarnings = FALSE)
 ggsave(
   file.path(out_fig_dir,
     paste0("ensemble_stability_all_variables_", region_name, ".png")  ),
-  p_stability_all,  width = 10,  height = 13,  dpi = 600,  bg = "white")
+  p_stability_all,  width = 10,  height = 12.5,  dpi = 600,  bg = "white")
 
 ggsave(
   file.path(out_fig_dir,
     paste0("ensemble_stability_all_variables_", region_name, ".pdf")),
-  p_stability_all,  width = 10,  height = 13,  bg = "white")
+  p_stability_all,  width = 10,  height = 12.5,  bg = "white")
 
 ```
 
@@ -5480,12 +5483,12 @@ load_diag_results <- function(response_var, region_name) {
 
 
 theme_diag <- function() {
-  theme_bw(base_size = 11) +
+  theme_bw(base_size = 12) +
     theme(
       text = element_text(face = "bold", family = "serif"),
       plot.title = element_text(hjust = 0.5, size = 12),
-      axis.title = element_text(size = 11),
-      axis.text = element_text(size = 10, color = "black"),
+      axis.title = element_text(size = 12),
+      axis.text = element_text(size =11.5, color = "black"),
       strip.text = element_blank(),
       strip.background = element_blank(),
       panel.grid.minor = element_blank(),
@@ -5565,7 +5568,7 @@ make_p_obs_pred <- function(dat, metrics, response_var, first_col = FALSE) {
       x = -Inf, y = Inf,
       label = label_txt,
       hjust = -0.1, vjust = 1.5,
-      size = 3.5,
+      size = 4,
       family = "serif",
       fontface = "bold"
     ) +
@@ -5796,6 +5799,9 @@ fig_diag_region <-
 
 fig_diag_region
 
+out_fig_dir <- file.path("fig")
+dir.create(out_fig_dir, showWarnings = FALSE, recursive = TRUE)
+
 ggsave(
   file.path(out_fig_dir, paste0("painels/figure_diagnostics_", region_name, "_all_variables.png")),
   fig_diag_region, width = 10, height = 11.5, dpi = 600, bg = "white"
@@ -5805,7 +5811,6 @@ ggsave(file.path(out_fig_dir, paste0("painels/figure_diagnostics_", region_name,
        plot = fig_diag_region, width = 10, height = 11.5, bg = "white")
 
 ```
-
 
 ## SBA
 
@@ -6473,7 +6478,7 @@ ggsave(file.path(out_fig_dir, paste0("painels/figure_ensemble_", region_name, "_
 
 #### Stabilization
 
-```{r}
+```{r,eval = FALSE, echo = TRUE}
 
 region_name <- "SBA"
 
@@ -6724,13 +6729,13 @@ p_stability_all <- ggplot(
     y = "Deviation from the final ensemble estimate (30 runs)",
     title = paste0("Stability of ensemble estimates - ", region_name)
   ) +
-  theme_bw(base_size = 12) +
+  theme_bw(base_size = 12.5) +
   theme(
     text = element_text(face = "bold", family = "serif"),
     plot.title = element_text(hjust = 0.5, size = 13),
-    axis.title = element_text(size = 12),
-    axis.text = element_text(size = 11, color = "black"),
-    strip.text = element_text(size = 11, face = "bold"),
+    axis.title = element_text(size = 12.5),
+    axis.text = element_text(size = 12, color = "black"),
+    strip.text = element_text(size = 12.5, face = "bold"),
     strip.background = element_rect(fill = "transparent", color = "transparent"),
     panel.grid.minor = element_blank()
   )
@@ -6744,12 +6749,12 @@ dir.create(out_fig_dir, recursive = TRUE, showWarnings = FALSE)
 ggsave(
   file.path(out_fig_dir,
     paste0("ensemble_stability_all_variables_", region_name, ".png")  ),
-  p_stability_all,  width = 10,  height = 13,  dpi = 600,  bg = "white")
+  p_stability_all,  width = 10,  height = 12.5,  dpi = 600,  bg = "white")
 
 ggsave(
   file.path(out_fig_dir,
     paste0("ensemble_stability_all_variables_", region_name, ".pdf")),
-  p_stability_all,  width = 10,  height = 13,  bg = "white")
+  p_stability_all,  width = 10,  height = 12.5,  bg = "white")
 
 ```
 
@@ -6837,12 +6842,12 @@ load_diag_results <- function(response_var, region_name) {
 
 
 theme_diag <- function() {
-  theme_bw(base_size = 11) +
+  theme_bw(base_size = 12) +
     theme(
       text = element_text(face = "bold", family = "serif"),
       plot.title = element_text(hjust = 0.5, size = 12),
-      axis.title = element_text(size = 11),
-      axis.text = element_text(size = 10, color = "black"),
+      axis.title = element_text(size = 12),
+      axis.text = element_text(size =11.5, color = "black"),
       strip.text = element_blank(),
       strip.background = element_blank(),
       panel.grid.minor = element_blank(),
@@ -6922,7 +6927,7 @@ make_p_obs_pred <- function(dat, metrics, response_var, first_col = FALSE) {
       x = -Inf, y = Inf,
       label = label_txt,
       hjust = -0.1, vjust = 1.5,
-      size = 3.5,
+      size = 4,
       family = "serif",
       fontface = "bold"
     ) +
@@ -7152,6 +7157,9 @@ fig_diag_region <-
   )
 
 fig_diag_region
+
+out_fig_dir <- file.path("fig")
+dir.create(out_fig_dir, showWarnings = FALSE, recursive = TRUE)
 
 ggsave(
   file.path(out_fig_dir, paste0("painels/figure_diagnostics_", region_name, "_all_variables.png")),
